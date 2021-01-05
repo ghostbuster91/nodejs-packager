@@ -1,0 +1,11 @@
+npm-debug.log*
+node_modules/
+.vscode/
+coverage/
+src/notes.ts
+src/sjcl/
+dist/
+docs/
+.env
+.idea
+.iml
