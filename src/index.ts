@@ -4,6 +4,8 @@ import fs from 'fs'
 import * as dockerfile from './dockerfile'
 import commander from 'commander'
 import { Docker } from 'node-docker-api'
+import tar from 'tar-fs'
+import tarStream from 'tar-stream';
 
 export interface DockerAlias {
     registryHost?: string,
@@ -61,6 +63,7 @@ async function stage(cwd: string, config: DockerConfig) {
     await fs.promises.mkdir(targetPath, { recursive: true })
     await fs.promises.writeFile(`${targetPath}/${config.targetFile}`, dockerImage, { encoding: 'utf-8' })
     console.log('Done')
+    return `${targetPath}/${config.targetFile}`
 }
 
 async function readConfig(cwd: string, configFile: string) {
@@ -98,7 +101,7 @@ async function main() {
         .option('-c, --config <fileName>', 'config file name', 'dockerconfig.ts')
         .description('Generates a directory with the Dockerfile and environment prepared for creating a Docker image.')
         .action(async cmdObj => {
-            const config: DockerConfig = await readConfig(cwd, cmdObj.config);
+            const config: DockerConfig = await readConfig(cwd, cmdObj.config)
             await stage(cwd, config)
         })
 
@@ -106,6 +109,18 @@ async function main() {
         .command('publishLocal')
         .option('-c, --config <fileName>', 'config file name', 'dockerconfig.ts')
         .description('Builds an image using the local Docker server.')
+        .action(async cmdObj => {
+            const config: DockerConfig = await readConfig(cwd, cmdObj.config)
+            const dockerfile = await stage(cwd, config)
+            const targetPath = `${cwd}/${config.targetDirectory}`
+            const tarDockerFile = `${targetPath}/dockerfile.tar`
+            await tar.pack(dockerfile).pipe(fs.createWriteStream(tarDockerFile))  //TODO don't create intermediate file
+            const dockerfileContent = fs.createReadStream(tarDockerFile) //TODO fix tar file
+            await docker.image
+            .build(dockerfileContent,{ t: dockerAliasToString(config.aliases[0])}) //TODO pass multiple aliases
+            //TODO display logs?
+            console.log("Image built")
+        })
 
     program
         .command('clean')
@@ -113,7 +128,7 @@ async function main() {
         .description('Removes the built image from the local Docker server.')
         .action(async cmdObj => {
             console.log('Removing image')
-            const config: DockerConfig = await readConfig(cwd, cmdObj.config);
+            const config: DockerConfig = await readConfig(cwd, cmdObj.config)
             await config.aliases.forEach(async alias => {
                 await docker.image.get(dockerAliasToString(alias)).remove() //TODO there can be no such image, invoke rmi api directly
             })
