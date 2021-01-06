@@ -1,15 +1,15 @@
-interface CmdLike {
+export interface CmdLike {
 
-    makeContent() : string
+    makeContent(): string
 }
 /**
  * Volume, Entrypoint, Run, Cmd
  */
 class ExecCmd implements CmdLike {
     cmd: string
-    args: [string]
+    args: string[]
 
-    constructor(cmd:string, args: [string]){
+    constructor(cmd: string, args: string[]) {
         this.cmd = cmd
         this.args = args
     }
@@ -23,9 +23,9 @@ class ExecCmd implements CmdLike {
  */
 class GenericCmd implements CmdLike {
     cmd: string
-    args: [string]
+    args: string[]
 
-    constructor(cmd:string, args: [string]){
+    constructor(cmd: string, args: string[]) {
         this.cmd = cmd
         this.args = args
     }
@@ -41,7 +41,7 @@ class CombinedCmd implements CmdLike {
     cmd: string
     arg: CmdLike
 
-    constructor(cmd:string, arg: CmdLike){
+    constructor(cmd: string, arg: CmdLike) {
         this.cmd = cmd
         this.arg = arg
     }
@@ -51,7 +51,7 @@ class CombinedCmd implements CmdLike {
 }
 
 class CommentCmd implements CmdLike {
-    comment : string
+    comment: string
     constructor(comment: string) {
         this.comment = comment
     }
@@ -62,40 +62,71 @@ class CommentCmd implements CmdLike {
 
 class DockerStageBreak implements CmdLike {
     makeContent(): string {
-     return "\n"
+        return "\n"
     }
 }
 
 class Dockerfile {
-    cmds: [CmdLike]
-    constructor(cmds: [CmdLike]) {
+    cmds: CmdLike[]
+    constructor(cmds: CmdLike[]) {
         this.cmds = cmds
     }
 
-    makeContent() : string {
-        return this.cmds.map(x=> x.makeContent()).join()
+    makeContent(): string {
+        return this.cmds.map(x => x.makeContent()).join()
     }
 }
 
-const add = (args : [string]): CmdLike => {
+export const add = (args: string[]): CmdLike => {
     return new GenericCmd("ADD", args)
 }
-const copy = (args : [string]): CmdLike => {
-    return new GenericCmd("COPY", args)
+export const copy = (from: string, to: string): CmdLike => {
+    return new GenericCmd("COPY", [from, to])
 }
-const env = (args : [string]): CmdLike => {
-    return new GenericCmd("ENV", args)
+export const copyChown = (from: string, to: string, user: string, group: string) => {
+    return new GenericCmd("COPY", [`--chown=${user}:${group} ${from} ${to}`])
+}
+export const env = (key: string, value: string): CmdLike => {
+    return new GenericCmd("ENV", [`${key}="${value}"`])
 }
 
-const volume = (args : [string]): CmdLike => {
+export const volume = (args: string[]): CmdLike => {
     return new ExecCmd("VOLUME", args)
 }
-const entrypoint = (args : [string]): CmdLike => {
+export const entrypoint = (args: string[]): CmdLike => {
     return new ExecCmd("ENTRYPOINT", args)
 }
-const run = (args : [string]): CmdLike => {
+export const run = (args: string[]): CmdLike => {
     return new ExecCmd("RUN", args)
 }
-const cmd = (args : [string]): CmdLike => {
+export const label = (key: string, value: any): CmdLike => {
+    return new GenericCmd("LABEL", [key + "=\"" + value.toString() + "\""])
+}
+export const workdir = (dir: string) => {
+    return new GenericCmd("WORKDIR", [dir])
+}
+export const fromAs = (baseImage: string, name: string) => {
+    return new GenericCmd("FROM", [baseImage, "as", name])
+}
+export const create = (commands: CmdLike[]): string => {
+    return new Dockerfile(commands).makeContent()
+}
+export const stageBreak = () => {
+    return new DockerStageBreak()
+}
+export const chgUser = (user: string, group?: string) => {
+    if (group != null) {
+        return new GenericCmd("USER", [`${user}:${group}`])
+    } else {
+        return new GenericCmd("USER", [user])
+    }
+}
+export const npmInstall = () => {
+    return new ExecCmd("RUN", ["npm", "install"])
+}
+export const expose = (ports: number[]) => {
+    return new GenericCmd("EXPOSE", ports.map(p => p.toString()))
+}
+export const cmd = (args: string[]) => {
     return new ExecCmd("CMD", args)
 }
