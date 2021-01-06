@@ -2,8 +2,8 @@
   "name": "js-docker-core",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
   "scripts": {
     "start": "ts-node src/index.ts",
     "build": "tsc"
