@@ -3,9 +3,7 @@
 import fs from 'fs'
 import * as dockerfile from './dockerfile'
 import commander from 'commander'
-import { Docker } from 'node-docker-api'
-import tar from 'tar-fs'
-import tarStream from 'tar-stream';
+import Dockerode from 'dockerode'
 
 export interface DockerAlias {
     registryHost?: string,
@@ -59,7 +57,7 @@ async function stage(cwd: string, config: DockerConfig) {
 
     const dockerImage = dockerfile.create(mainstage)
 
-    const targetPath = `${cwd}/${config.targetDirectory}`
+    const targetPath = `${cwd}`
     await fs.promises.mkdir(targetPath, { recursive: true })
     await fs.promises.writeFile(`${targetPath}/${config.targetFile}`, dockerImage, { encoding: 'utf-8' })
     console.log('Done')
@@ -88,7 +86,7 @@ async function readConfig(cwd: string, configFile: string) {
 }
 
 async function main() {
-    const docker = new Docker({ socketPath: '/var/run/docker.sock' });
+    const docker = new Dockerode({socketPath: '/var/run/docker.sock'})
     const cwd = process.cwd()
     console.log(`Current working directory: ${cwd}`)
     const program = commander.program;
@@ -111,14 +109,16 @@ async function main() {
         .description('Builds an image using the local Docker server.')
         .action(async cmdObj => {
             const config: DockerConfig = await readConfig(cwd, cmdObj.config)
-            const dockerfile = await stage(cwd, config)
-            const targetPath = `${cwd}/${config.targetDirectory}`
-            const tarDockerFile = `${targetPath}/dockerfile.tar`
-            await tar.pack(dockerfile).pipe(fs.createWriteStream(tarDockerFile))  //TODO don't create intermediate file
-            const dockerfileContent = fs.createReadStream(tarDockerFile) //TODO fix tar file
-            await docker.image
-            .build(dockerfileContent,{ t: dockerAliasToString(config.aliases[0])}) //TODO pass multiple aliases
-            //TODO display logs?
+            await stage(cwd, config)
+            const primaryAlias = dockerAliasToString(config.aliases[0])
+            console.log(`primary: ${primaryAlias}`)
+            const stream = await docker.buildImage({
+                context: cwd,
+                src: ['.']
+              }, { t: primaryAlias }) //TODO pass multiple aliases, also why the image tag is not taken into account?!
+            await new Promise((resolve, reject) => {
+                docker.modem.followProgress(stream, (err:any, res:any) => err ? reject(err) : resolve(res));
+              });
             console.log("Image built")
         })
 
@@ -130,7 +130,7 @@ async function main() {
             console.log('Removing image')
             const config: DockerConfig = await readConfig(cwd, cmdObj.config)
             await config.aliases.forEach(async alias => {
-                await docker.image.get(dockerAliasToString(alias)).remove() //TODO there can be no such image, invoke rmi api directly
+                await docker.getImage(dockerAliasToString(alias)).remove() //TODO there can be no such image, invoke rmi api directly
             })
         })
 
