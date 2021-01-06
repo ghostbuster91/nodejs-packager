@@ -14,7 +14,7 @@ class ExecCmd implements CmdLike {
         this.args = args
     }
     makeContent(): string {
-        return `${this.cmd} ${this.args}\n`
+        return `${this.cmd} [${this.args.map(a=> `"${a}"`).join(', ')}]\n`
     }
 }
 
@@ -30,7 +30,7 @@ class GenericCmd implements CmdLike {
         this.args = args
     }
     makeContent(): string {
-        return `${this.cmd} ${this.args}\n`
+        return `${this.cmd} ${this.args.join(' ')}\n`
     }
 }
 
@@ -73,7 +73,7 @@ class Dockerfile {
     }
 
     makeContent(): string {
-        return this.cmds.map(x => x.makeContent()).join()
+        return this.cmds.map(x => x.makeContent()).join('')
     }
 }
 
@@ -124,8 +124,13 @@ export const chgUser = (user: string, group?: string) => {
 export const npmInstall = () => {
     return new ExecCmd("RUN", ["npm", "install"])
 }
-export const expose = (ports: number[]) => {
-    return new GenericCmd("EXPOSE", ports.map(p => p.toString()))
+export const expose = (ports: number[], updPorts: number[]) => {
+    //Cmd("EXPOSE", (exposedPorts.map(_.toString) ++ exposedUdpPorts.map(_.toString).map(_ + "/udp")) mkString " ")
+    if(ports.length > 0 || updPorts.length > 0){
+        return new GenericCmd("EXPOSE", ports.map(p => p.toString()))
+    }else{
+        return null
+    }
 }
 export const cmd = (args: string[]) => {
     return new ExecCmd("CMD", args)
