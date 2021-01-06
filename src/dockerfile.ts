@@ -125,7 +125,6 @@ export const npmInstall = () => {
     return new ExecCmd("RUN", ["npm", "install"])
 }
 export const expose = (ports: number[], updPorts: number[]) => {
-    //Cmd("EXPOSE", (exposedPorts.map(_.toString) ++ exposedUdpPorts.map(_.toString).map(_ + "/udp")) mkString " ")
     if(ports.length > 0 || updPorts.length > 0){
         return new GenericCmd("EXPOSE", [(ports.map(p => p.toString()).concat(updPorts.map(p=>`${p}/udp`))).join(' ')])
     }else{
