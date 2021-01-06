@@ -4,6 +4,9 @@ import fs from 'fs'
 import * as dockerfile from './dockerfile'
 import commander from 'commander'
 import Dockerode from 'dockerode'
+import util from 'util'
+import child_process from 'child_process'
+const exec = util.promisify(child_process.exec);
 
 export interface DockerAlias {
     registryHost?: string,
@@ -23,9 +26,10 @@ export interface UserDockerConfig {
     workdir?: string,
     exposedPorts?: number[],
     exposedUdpPorts?: number[],
-    targetDirectory?: string,
-    targetFile?: string
+    dockerDir?: string,
+    dockerFile?: string
     entrypoint: string[],
+    depsFiles?: string[],
     command?: string[],
     aliases: DockerAlias[]
 }
@@ -35,9 +39,10 @@ interface DockerConfig {
     workdir: string,
     exposedPorts: number[],
     exposedUpdPorts: number[],
-    targetDirectory: string,
-    targetFile: string
+    dockerDir: string,
+    dockerFile: string
     entrypoint: string[],
+    depsFiles: string[],
     command: string[],
     aliases: DockerAlias[]
 }
@@ -47,10 +52,9 @@ async function stage(cwd: string, config: DockerConfig) {
     const mainstage = [
         dockerfile.fromAs(config.baseImage, "mainstage"),
         dockerfile.workdir(config.workdir),
-        dockerfile.copy("package*.json", config.workdir),
-        dockerfile.chgUser("node"),
+        dockerfile.multiCopy(config.depsFiles, `${config.workdir}/`),
         dockerfile.npmInstall(),
-        dockerfile.copyChown(".", config.workdir, "node", "node")
+        dockerfile.copy(".", config.workdir)
     ]
         .concat(dockerfile.expose(config.exposedPorts, config.exposedPorts) ?? [])
         .concat([dockerfile.entrypoint(config.entrypoint), dockerfile.cmd(config.command)]);
@@ -59,9 +63,9 @@ async function stage(cwd: string, config: DockerConfig) {
 
     const targetPath = `${cwd}`
     await fs.promises.mkdir(targetPath, { recursive: true })
-    await fs.promises.writeFile(`${targetPath}/${config.targetFile}`, dockerImage, { encoding: 'utf-8' })
+    await fs.promises.writeFile(`${targetPath}/${config.dockerFile}`, dockerImage, { encoding: 'utf-8' })
     console.log('Done')
-    return `${targetPath}/${config.targetFile}`
+    return `${targetPath}/${config.dockerFile}`
 }
 
 async function readConfig(cwd: string, configFile: string) {
@@ -73,11 +77,12 @@ async function readConfig(cwd: string, configFile: string) {
             workdir: userConfig.workdir ?? "/home/node/app",
             exposedPorts: userConfig.exposedPorts ?? [],
             exposedUpdPorts: userConfig.exposedUdpPorts ?? [],
-            targetDirectory: userConfig.targetDirectory ?? "docker",
-            targetFile: userConfig.targetFile ?? "Dockerfile",
+            dockerDir: userConfig.dockerDir ?? "docker",
+            dockerFile: userConfig.dockerFile ?? "Dockerfile",
             entrypoint: userConfig.entrypoint,
             command: userConfig.command ?? [],
-            aliases: userConfig.aliases
+            aliases: userConfig.aliases,
+            depsFiles : userConfig.depsFiles ?? ['package.json', 'package-lock.json']
         };
     };
 
@@ -112,13 +117,7 @@ async function main() {
             await stage(cwd, config)
             const primaryAlias = dockerAliasToString(config.aliases[0])
             console.log(`primary: ${primaryAlias}`)
-            const stream = await docker.buildImage({
-                context: cwd,
-                src: ['.']
-              }, { t: primaryAlias }) //TODO pass multiple aliases, also why the image tag is not taken into account?!
-            await new Promise((resolve, reject) => {
-                docker.modem.followProgress(stream, (err:any, res:any) => err ? reject(err) : resolve(res));
-              });
+            await exec(`docker build --tag ${primaryAlias} --rm --file ${config.dockerFile} .`, {cwd: cwd})
             console.log("Image built")
         })
 

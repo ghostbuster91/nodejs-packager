@@ -83,6 +83,9 @@ export const add = (args: string[]): CmdLike => {
 export const copy = (from: string, to: string): CmdLike => {
     return new GenericCmd("COPY", [from, to])
 }
+export const multiCopy = (from: string[], to: string): CmdLike => {
+    return new GenericCmd("COPY", from.concat([to]))
+}
 export const copyChown = (from: string, to: string, user: string, group: string) => {
     return new GenericCmd("COPY", [`--chown=${user}:${group} ${from} ${to}`])
 }
