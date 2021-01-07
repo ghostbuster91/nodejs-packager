@@ -3,7 +3,7 @@
 const userConfig = {
 baseImage: "node:15-alpine",
 entrypoint: ["node", "app.js"],
-aliases: [{name: "node-test-img", tag: "11"}]
+aliases: [{name: "node-test-img", tag: "12"}]
 }	
 
 module.exports = userConfig
