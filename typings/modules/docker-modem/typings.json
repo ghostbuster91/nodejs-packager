@@ -1,9 +1,0 @@
-{
-  "resolution": "main",
-  "tree": {
-    "src": "https://raw.githubusercontent.com/typed-contrib/docker-modem/c8b05e394570680b5a14069362d484c4d4e24fd6/typings.json",
-    "raw": "registry:npm/docker-modem#0.3.1+20170728120215",
-    "main": "lib/modem.d.ts",
-    "name": "docker-modem"
-  }
-}
