@@ -178,9 +178,9 @@ async function main() {
         .action(async (cmdObj) => {
             console.log("Removing image");
             const config: DockerConfig = await readConfig(cwd, cmdObj.config);
-            config.aliases.forEach(async (alias) => {
+            for(const alias of config.aliases) {
                 await docker.getImage(dockerAliasToString(alias)).remove() //TODO there can be no such image, invoke rmi api directly
-            });
+            }
         });
 
     await program.parseAsync(process.argv);
