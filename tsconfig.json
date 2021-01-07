@@ -1,12 +1,13 @@
 {
-  "compilerOptions": {
-    "target": "es2015",
-    "module": "commonjs",
-    "declaration": true,
-    "sourceMap": true,
-    "outDir": "dist",
-    "rootDir": "./",
-    "strict": true,
-    "esModuleInterop": true
-  }
+    "compilerOptions": {
+        "lib": ["ES2019"],
+        "target": "es2019",
+        "module": "commonjs",
+        "declaration": true,
+        "sourceMap": true,
+        "outDir": "dist",
+        "rootDir": "./",
+        "strict": true,
+        "esModuleInterop": true
+    }
 }
