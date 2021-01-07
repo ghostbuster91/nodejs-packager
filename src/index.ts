@@ -4,6 +4,8 @@ import fs from 'fs'
 import * as dockerfile from './dockerfile'
 import commander from 'commander'
 import Dockerode from 'dockerode'
+import glob from 'fast-glob'
+import path from 'path'
 
 export interface DockerAlias {
     registryHost?: string;
@@ -47,6 +49,7 @@ interface DockerConfig {
 }
 
 async function stage(cwd: string, config: DockerConfig) {
+
     const mainstage = [
         dockerfile.fromAs(config.baseImage, "mainstage"),
         dockerfile.workdir(config.workdir),
@@ -62,15 +65,30 @@ async function stage(cwd: string, config: DockerConfig) {
             dockerfile.cmd(config.command),
         ]);
 
+    const includedFiles = await filterEntries(cwd, config)        
     const dockerImage = dockerfile.create(mainstage);
 
-    const targetPath = `${cwd}`;
+    const targetPath = `${cwd}/${config.dockerDir}`;
+    await fs.rmdirSync(targetPath, { recursive: true });
     await fs.promises.mkdir(targetPath, { recursive: true });
     await fs.promises.writeFile(
         `${targetPath}/${config.dockerFile}`,
         dockerImage,
         { encoding: "utf-8" }
     );
+    
+    
+    // const allFiles = await glob(`${cwd}/**`)
+    console.log(includedFiles)
+    // fse.copySync(allFiles, targetPath, { filter: filterFunc }) //TODO use async
+    for (const file of includedFiles) {
+        const relative = path.relative(cwd,file)
+        const targetFile = `${targetPath}/${relative}`
+        console.log(`copying ${file} ${targetFile}`)
+        await fs.promises.mkdir(path.dirname(targetFile), { recursive: true })
+        await fs.promises.copyFile(file, targetFile, )
+    }
+
     console.log("Done");
     return `${targetPath}/${config.dockerFile}`;
 }
@@ -84,7 +102,7 @@ async function readConfig(cwd: string, configFile: string) {
             workdir: userConfig.workdir ?? "/home/node/app",
             exposedPorts: userConfig.exposedPorts ?? [],
             exposedUpdPorts: userConfig.exposedUdpPorts ?? [],
-            dockerDir: userConfig.dockerDir ?? "docker",
+            dockerDir: userConfig.dockerDir ?? ".docker",
             dockerFile: userConfig.dockerFile ?? "Dockerfile",
             entrypoint: userConfig.entrypoint,
             command: userConfig.command ?? [],
@@ -97,6 +115,11 @@ async function readConfig(cwd: string, configFile: string) {
     };
 
     return createConfig(userConfig);
+}
+
+async function filterEntries(directory: string, config:DockerConfig): Promise<string[]> {
+    const ignorePatterns = ["**/node_modules/**", `**/${config.dockerDir}/**`] //TODO enchance
+    return glob(`${directory}/**`, { ignore: ignorePatterns });
 }
 
 async function main() {
@@ -132,15 +155,14 @@ async function main() {
         .description("Builds an image using the local Docker server.")
         .action(async (cmdObj) => {
             const config: DockerConfig = await readConfig(cwd, cmdObj.config);
-            await stage(cwd, config);
-            const primaryAlias = dockerAliasToString(config.aliases[0]);
-            console.log(`primary: ${primaryAlias}`)
+            const dockerfile = await stage(cwd, config);
+            const aliases = config.aliases.map(dockerAliasToString);
             const stream = await docker.buildImage({
-                context: cwd,
-                src: ['.']
-            }, { t: primaryAlias }) //TODO pass multiple aliases
+                context: path.dirname(dockerfile),
+                src: ['.'] //TODO without docker file
+            }, { t: aliases }) //TODO pass multiple aliases
             await new Promise((resolve, reject) => {
-                docker.modem.followProgress(stream, (err:any, res:any) => err ? reject(err) : resolve(res), ()=> console.log("#"));
+                docker.modem.followProgress(stream, (err: any, res: any) => err ? reject(err) : resolve(res), () => console.log("#"));
             }); // TODO how to catch errors?
             console.log("Image built")
         });
@@ -156,8 +178,8 @@ async function main() {
         .action(async (cmdObj) => {
             console.log("Removing image");
             const config: DockerConfig = await readConfig(cwd, cmdObj.config);
-            await config.aliases.forEach(async (alias) => {
-                await docker.getImage(dockerAliasToString(alias)).remove(); //TODO there can be no such image, invoke rmi api directly
+            config.aliases.forEach(async (alias) => {
+                await docker.getImage(dockerAliasToString(alias)).remove() //TODO there can be no such image, invoke rmi api directly
             });
         });
 
