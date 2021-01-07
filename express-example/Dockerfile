@@ -1,8 +1,7 @@
 FROM node as mainstage
 WORKDIR /home/node/app
-COPY package*.json /home/node/app
-USER node
+COPY package.json package-lock.json /home/node/app/
 RUN ["npm", "install"]
-COPY --chown=node:node . /home/node/app
+COPY . /home/node/app
 ENTRYPOINT ["node", "app.js"]
 CMD []

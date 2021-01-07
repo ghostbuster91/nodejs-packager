@@ -4,9 +4,6 @@ import fs from 'fs'
 import * as dockerfile from './dockerfile'
 import commander from 'commander'
 import Dockerode from 'dockerode'
-import util from 'util'
-import child_process from 'child_process'
-const exec = util.promisify(child_process.exec);
 
 export interface DockerAlias {
     registryHost?: string,
@@ -86,8 +83,7 @@ async function readConfig(cwd: string, configFile: string) {
         };
     };
 
-    const config: DockerConfig = createConfig(userConfig);
-    return config;
+    return createConfig(userConfig);
 }
 
 async function main() {
@@ -117,7 +113,13 @@ async function main() {
             await stage(cwd, config)
             const primaryAlias = dockerAliasToString(config.aliases[0])
             console.log(`primary: ${primaryAlias}`)
-            await exec(`docker build --tag ${primaryAlias} --rm --file ${config.dockerFile} .`, {cwd: cwd})
+            const stream = await docker.buildImage({
+                context: cwd,
+                src: ['.']
+              }, { t: primaryAlias }) //TODO pass multiple aliases
+            await new Promise((resolve, reject) => {
+                docker.modem.followProgress(stream, (err:any, res:any) => err ? reject(err) : resolve(res), ()=> console.log("#"));
+              }); // TODO how to catch errors?
             console.log("Image built")
         })
 
