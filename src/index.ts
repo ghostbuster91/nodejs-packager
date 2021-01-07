@@ -65,7 +65,7 @@ async function stage(cwd: string, config: DockerConfig) {
             dockerfile.cmd(config.command),
         ]);
 
-    const includedFiles = await filterEntries(cwd, config)        
+    const includedFiles = await filterEntries(cwd, config)
     const dockerImage = dockerfile.create(mainstage);
 
     const targetPath = `${cwd}/${config.dockerDir}`;
@@ -76,17 +76,17 @@ async function stage(cwd: string, config: DockerConfig) {
         dockerImage,
         { encoding: "utf-8" }
     );
-    
-    
+
+
     // const allFiles = await glob(`${cwd}/**`)
     console.log(includedFiles)
     // fse.copySync(allFiles, targetPath, { filter: filterFunc }) //TODO use async
     for (const file of includedFiles) {
-        const relative = path.relative(cwd,file)
+        const relative = path.relative(cwd, file)
         const targetFile = `${targetPath}/${relative}`
         console.log(`copying ${file} ${targetFile}`)
         await fs.promises.mkdir(path.dirname(targetFile), { recursive: true })
-        await fs.promises.copyFile(file, targetFile, )
+        await fs.promises.copyFile(file, targetFile,)
     }
 
     console.log("Done");
@@ -117,7 +117,7 @@ async function readConfig(cwd: string, configFile: string) {
     return createConfig(userConfig);
 }
 
-async function filterEntries(directory: string, config:DockerConfig): Promise<string[]> {
+async function filterEntries(directory: string, config: DockerConfig): Promise<string[]> {
     const ignorePatterns = ["**/node_modules/**", `**/${config.dockerDir}/**`] //TODO enchance
     return glob(`${directory}/**`, { ignore: ignorePatterns });
 }
@@ -178,7 +178,7 @@ async function main() {
         .action(async (cmdObj) => {
             console.log("Removing image");
             const config: DockerConfig = await readConfig(cwd, cmdObj.config);
-            for(const alias of config.aliases) {
+            for (const alias of config.aliases) {
                 await docker.getImage(dockerAliasToString(alias)).remove() //TODO there can be no such image, invoke rmi api directly
             }
         });
