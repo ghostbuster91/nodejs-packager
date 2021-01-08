@@ -166,7 +166,18 @@ async function main() {
                 docker.modem.followProgress(
                     stream,
                     (err: any, res: any) => (err ? reject(err) : resolve(res)),
-                    () => console.log("#")
+                    (a: any) => {
+                        const upstreamText: string = a.stream;
+                        if (upstreamText) {
+                            const textWithoutNewLines: string = upstreamText.replace(
+                                "\n",
+                                ""
+                            );
+                            if (textWithoutNewLines) {
+                                console.log(textWithoutNewLines);
+                            }
+                        }
+                    }
                 );
             }); // TODO how to catch errors?
             console.log("Image built");
