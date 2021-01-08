@@ -20,6 +20,7 @@ export interface ImageConfig {
     entrypoint: string[];
     command: string[];
     aliases: DockerAlias[];
+    maintainer?: string;
 }
 
 export interface BuildStage {
@@ -52,16 +53,21 @@ export const createConfig = (userConfig: uc.AppConfig): AppConfig => {
             aliases:
                 userConfig.imageConfig.dockerUpdateLatest === "true"
                     ? userConfig.imageConfig.aliases.concat(
-                        userConfig.imageConfig.aliases
-                            .filter(
-                                (thing, i, arr) =>
-                                    arr.indexOf(arr.find((t) => t.name === thing.name)!) === i
-                            )
-                            .map((a) => dockerAliasWithTag(a, "latest"))
-                    )
+                          userConfig.imageConfig.aliases
+                              .filter(
+                                  (thing, i, arr) =>
+                                      arr.indexOf(
+                                          arr.find(
+                                              (t) => t.name === thing.name
+                                          )!
+                                      ) === i
+                              )
+                              .map((a) => dockerAliasWithTag(a, "latest"))
+                      )
                     : userConfig.imageConfig.aliases,
             entrypoint: userConfig.imageConfig.entrypoint,
             command: userConfig.imageConfig.command ?? [],
+            maintainer: userConfig.imageConfig.maintainer,
         },
         dockerDir: userConfig.dockerDir ?? ".docker",
         dockerFile: userConfig.dockerFile ?? "Dockerfile",

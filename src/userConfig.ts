@@ -16,5 +16,6 @@ export interface ImageConfig {
     command?: string[];
     aliases: DockerAlias[];
     dockerUpdateLatest?: string;
-    template?: String;
+    template?: string;
+    maintainer?: string;
 }
