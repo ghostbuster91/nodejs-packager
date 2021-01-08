@@ -6,121 +6,131 @@ import commander from "commander";
 import Dockerode from "dockerode";
 import glob from "fast-glob";
 import path from "path";
+import {
+    DockerAlias,
+    dockerAliasWithTag,
+    dockerAliasToString,
+} from "./dockerAlias";
+import * as uc from "./userConfig";
 
-export interface DockerAlias {
-    registryHost?: string;
-    username?: string;
-    name: string;
-    tag?: string;
-}
-const dockerAliasToString = (alias: DockerAlias): string => {
-    return (
-        (alias.registryHost ? `${alias.registryHost}/` : "") +
-        (alias.username ? `${alias.username}/` : "") +
-        alias.name +
-        (alias.tag ? `:${alias.tag}` : "")
-    );
-};
-
-const dockerAliasWithTag = (alias: DockerAlias, tag: string): DockerAlias => {
-    return { tag, ...alias };
-};
-
-export interface UserDockerConfig {
-    baseImage: string;
-    workdir?: string;
-    exposedPorts?: number[];
-    exposedUdpPorts?: number[];
-    dockerDir?: string;
-    dockerFile?: string;
-    entrypoint: string[];
-    depsFiles?: string[];
-    command?: string[];
-    aliases: DockerAlias[];
-    dockerUpdateLatest?: boolean;
+interface AppConfig {
+    dockerDir: string;
+    dockerFile: string;
+    imageConfig: ImageConfig;
 }
 
-interface DockerConfig {
+interface ImageConfig {
     baseImage: string;
     workdir: string;
     exposedPorts: number[];
     exposedUpdPorts: number[];
-    dockerDir: string;
-    dockerFile: string;
     entrypoint: string[];
-    depsFiles: string[];
     command: string[];
     aliases: DockerAlias[];
 }
 
-async function stage(cwd: string, config: DockerConfig) {
-    const mainstage = [
-        dockerfile.fromAs(config.baseImage, "mainstage"),
-        dockerfile.workdir(config.workdir),
-        dockerfile.multiCopy(config.depsFiles, `${config.workdir}/`),
+async function stage(cwd: string, appConfig: AppConfig) {
+    const imageConfig = appConfig.imageConfig;
+    const buildStageName = "buildStage";
+    const mainStageName = "mainStage";
+    const buildStage = [
+        dockerfile.fromAs(imageConfig.baseImage, buildStageName),
+        dockerfile.workdir(imageConfig.workdir),
+        dockerfile.multiCopy(
+            ["1/package.json", "1/package-lock.json"],
+            `${imageConfig.workdir}/`
+        ),
         dockerfile.npmInstall(),
-        dockerfile.copy(".", config.workdir),
-    ]
+        dockerfile.copy("2", imageConfig.workdir),
+        dockerfile.npmRunBuild(),
+    ];
+    const mainStage = buildStage
+        .concat([
+            dockerfile.fromAs(imageConfig.baseImage, mainStageName),
+            dockerfile.workdir(imageConfig.workdir),
+            dockerfile.npmInstallProd(),
+            dockerfile.multiCopy(
+                ["1/package.json", "1/package-lock.json"],
+                `${imageConfig.workdir}/`
+            ),
+            dockerfile.copyFrom(buildStageName, [imageConfig.workdir], imageConfig.workdir)
+        ])
         .concat(
-            dockerfile.expose(config.exposedPorts, config.exposedPorts) ?? []
+            dockerfile.expose(
+                imageConfig.exposedPorts,
+                imageConfig.exposedPorts
+            ) ?? []
         )
         .concat([
-            dockerfile.entrypoint(config.entrypoint),
-            dockerfile.cmd(config.command),
+            dockerfile.entrypoint(imageConfig.entrypoint),
+            dockerfile.cmd(imageConfig.command),
         ]);
 
-    const includedFiles = await filterEntries(cwd, config);
-    const dockerImage = dockerfile.create(mainstage);
+    const dockerImage = dockerfile.create(mainStage);
 
-    const targetPath = `${cwd}/${config.dockerDir}`;
+    const targetPath = `${cwd}/${appConfig.dockerDir}`;
     await fs.promises.rmdir(targetPath, { recursive: true });
     await fs.promises.mkdir(targetPath, { recursive: true });
     await fs.promises.writeFile(
-        `${targetPath}/${config.dockerFile}`,
+        `${targetPath}/${appConfig.dockerFile}`,
         dockerImage,
         { encoding: "utf-8" }
     );
 
-    for (const file of includedFiles) {
+    const layer1Files = ["package.json", "package-lock.json"];
+
+    for (const file of layer1Files) {
         const relative = path.relative(cwd, file);
-        const targetFile = `${targetPath}/${relative}`;
+        const targetFile = `${targetPath}/1/${relative}`;
+        console.log(`Copying ${file}`);
+        await fs.promises.mkdir(path.dirname(targetFile), { recursive: true });
+        await fs.promises.copyFile(file, targetFile);
+    }
+
+    const ignorePatterns = [
+        "**/node_modules/**",
+        `**/${appConfig.dockerDir}/**`,
+        "**/dockerconfig.ts",
+    ].concat(layer1Files.map(f=> `**/${f}`));
+    const layer2Files = await glob(`${cwd}/**`, { ignore: ignorePatterns });
+    for (const file of layer2Files) {
+        const relative = path.relative(cwd, file);
+        const targetFile = `${targetPath}/2/${relative}`;
         console.log(`Copying ${file}`);
         await fs.promises.mkdir(path.dirname(targetFile), { recursive: true });
         await fs.promises.copyFile(file, targetFile);
     }
 
     console.log("Done");
-    return `${targetPath}/${config.dockerFile}`;
+    return `${targetPath}/${appConfig.dockerFile}`;
 }
 
 async function readConfig(cwd: string, configFile: string) {
-    const userConfig: UserDockerConfig = await import(`${cwd}/${configFile}`);
+    const userConfig: uc.AppConfig = await import(`${cwd}/${configFile}`);
     console.log(`UserConfig: ${JSON.stringify(userConfig)}`);
-    const createConfig = (userConfig: UserDockerConfig): DockerConfig => {
+    const createConfig = (userConfig: uc.AppConfig): AppConfig => {
         return {
-            baseImage: userConfig.baseImage,
-            workdir: userConfig.workdir ?? "/home/node/app",
-            exposedPorts: userConfig.exposedPorts ?? [],
-            exposedUpdPorts: userConfig.exposedUdpPorts ?? [],
+            imageConfig: {
+                baseImage: userConfig.imageConfig.baseImage,
+                workdir: userConfig.imageConfig.workdir ?? "/home/node/app",
+                exposedPorts: userConfig.imageConfig.exposedPorts ?? [],
+                exposedUpdPorts: userConfig.imageConfig.exposedUdpPorts ?? [],
+                aliases:
+                    userConfig.imageConfig.dockerUpdateLatest ?? false
+                        ? userConfig.imageConfig.aliases.concat(
+                              userConfig.imageConfig.aliases
+                                  .map((a) => dockerAliasWithTag(a, "latest"))
+                                  .filter(
+                                      (elem, index, self) =>
+                                          index === self.indexOf(elem)
+                                  )
+                          )
+                        : userConfig.imageConfig.aliases,
+                entrypoint: userConfig.imageConfig.entrypoint,
+                command: userConfig.imageConfig.command ?? [],
+            },
             dockerDir: userConfig.dockerDir ?? ".docker",
             dockerFile: userConfig.dockerFile ?? "Dockerfile",
-            entrypoint: userConfig.entrypoint,
-            command: userConfig.command ?? [],
-            aliases:
-                userConfig.dockerUpdateLatest ?? false
-                    ? userConfig.aliases.concat(
-                          userConfig.aliases
-                              .map((a) => dockerAliasWithTag(a, "latest"))
-                              .filter(
-                                  (elem, index, self) =>
-                                      index === self.indexOf(elem)
-                              )
-                      )
-                    : userConfig.aliases,
-            depsFiles: userConfig.depsFiles ?? [
-                "package.json",
-                "package-lock.json",
-            ],
         };
     };
 
@@ -129,9 +139,9 @@ async function readConfig(cwd: string, configFile: string) {
 
 async function filterEntries(
     directory: string,
-    config: DockerConfig
+    config: AppConfig
 ): Promise<string[]> {
-    const ignorePatterns = ["**/node_modules/**", `**/${config.dockerDir}/**`]; //TODO enchance
+    const ignorePatterns = ["**/node_modules/**", `**/${config.dockerDir}/**`];
     return glob(`${directory}/**`, { ignore: ignorePatterns });
 }
 
@@ -154,7 +164,7 @@ async function main() {
             "Generates a directory with the Dockerfile and environment prepared for creating a Docker image."
         )
         .action(async (cmdObj) => {
-            const config: DockerConfig = await readConfig(cwd, cmdObj.config);
+            const config: AppConfig = await readConfig(cwd, cmdObj.config);
             await stage(cwd, config);
         });
 
@@ -167,7 +177,7 @@ async function main() {
         )
         .description("Builds an image using the local Docker server.")
         .action(async (cmdObj) => {
-            const config: DockerConfig = await readConfig(cwd, cmdObj.config);
+            const config: AppConfig = await readConfig(cwd, cmdObj.config);
             const dockerfile = await stage(cwd, config);
             await buildDockerImage(config, docker, dockerfile); // TODO how to catch errors?
         });
@@ -182,8 +192,8 @@ async function main() {
         .description("Removes the built image from the local Docker server.")
         .action(async (cmdObj) => {
             console.log("Removing image");
-            const config: DockerConfig = await readConfig(cwd, cmdObj.config);
-            for (const alias of config.aliases) {
+            const config: AppConfig = await readConfig(cwd, cmdObj.config);
+            for (const alias of config.imageConfig.aliases) {
                 await docker.getImage(dockerAliasToString(alias)).remove(); //TODO there can be no such image, invoke rmi api directly
             }
         });
@@ -192,11 +202,11 @@ async function main() {
 }
 
 async function buildDockerImage(
-    config: DockerConfig,
+    config: AppConfig,
     docker: Dockerode,
     dockerfile: string
 ) {
-    const aliases = config.aliases.map(dockerAliasToString);
+    const aliases = config.imageConfig.aliases.map(dockerAliasToString);
     const stream = await docker.buildImage(
         {
             context: path.dirname(dockerfile),
