@@ -22,6 +22,10 @@ const dockerAliasToString = (alias: DockerAlias): string => {
     );
 };
 
+const dockerAliasWithTag = (alias: DockerAlias, tag: string): DockerAlias => {
+    return { tag, ...alias };
+};
+
 export interface UserDockerConfig {
     baseImage: string;
     workdir?: string;
@@ -33,6 +37,7 @@ export interface UserDockerConfig {
     depsFiles?: string[];
     command?: string[];
     aliases: DockerAlias[];
+    dockerUpdateLatest?: boolean;
 }
 
 interface DockerConfig {
@@ -101,7 +106,17 @@ async function readConfig(cwd: string, configFile: string) {
             dockerFile: userConfig.dockerFile ?? "Dockerfile",
             entrypoint: userConfig.entrypoint,
             command: userConfig.command ?? [],
-            aliases: userConfig.aliases,
+            aliases:
+                userConfig.dockerUpdateLatest ?? false
+                    ? userConfig.aliases.concat(
+                          userConfig.aliases
+                              .map((a) => dockerAliasWithTag(a, "latest"))
+                              .filter(
+                                  (elem, index, self) =>
+                                      index === self.indexOf(elem)
+                              )
+                      )
+                    : userConfig.aliases,
             depsFiles: userConfig.depsFiles ?? [
                 "package.json",
                 "package-lock.json",
@@ -176,7 +191,11 @@ async function main() {
     await program.parseAsync(process.argv);
 }
 
-async function buildDockerImage(config: DockerConfig, docker: Dockerode, dockerfile: string) {
+async function buildDockerImage(
+    config: DockerConfig,
+    docker: Dockerode,
+    dockerfile: string
+) {
     const aliases = config.aliases.map(dockerAliasToString);
     const stream = await docker.buildImage(
         {
@@ -204,6 +223,5 @@ async function buildDockerImage(config: DockerConfig, docker: Dockerode, dockerf
         );
     });
 }
-
 
 main();
