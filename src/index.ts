@@ -10,7 +10,7 @@ import { buildDockerImage } from "./commands/buildImage";
 
 async function readConfig(cwd: string, configFile: string): Promise<AppConfig> {
     const userConfig: uc.AppConfig = await import(`${cwd}/${configFile}`);
-    console.log(`UserConfig: ${JSON.stringify(userConfig)}`);
+    console.log(`UserConfig loaded\n`);
     return createConfig(userConfig);
 }
 
