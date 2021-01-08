@@ -109,7 +109,7 @@ function createMainStage(buildStage: dockerfile.CmdLike[], mainStageName: string
         .concat(
             dockerfile.expose(
                 imageConfig.exposedPorts,
-                imageConfig.exposedPorts
+                imageConfig.exposedUpdPorts
             ) ?? []
         )
         .concat([

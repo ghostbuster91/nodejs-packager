@@ -3,10 +3,11 @@
 const userConfig = {
 imageConfig: {
     baseImage: "node:15-alpine",
-    entrypoint: ["node", "app.js"],
+    entrypoint: ["node", "index.js"],
     aliases: [{name: "node-test-img", tag: "13"}, {name: "node-test-img", tag: "not-latest"}],
     template: 'NPM_JS',
-    dockerUpdateLatest: 'true'
+    dockerUpdateLatest: 'true',
+    exposedPorts: [3000]
 }
 }	
 
