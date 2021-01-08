@@ -154,33 +154,7 @@ async function main() {
         .action(async (cmdObj) => {
             const config: DockerConfig = await readConfig(cwd, cmdObj.config);
             const dockerfile = await stage(cwd, config);
-            const aliases = config.aliases.map(dockerAliasToString);
-            const stream = await docker.buildImage(
-                {
-                    context: path.dirname(dockerfile),
-                    src: ["."], //TODO without docker file
-                },
-                { t: aliases }
-            );
-            await new Promise((resolve, reject) => {
-                docker.modem.followProgress(
-                    stream,
-                    (err: any, res: any) => (err ? reject(err) : resolve(res)),
-                    (a: any) => {
-                        const upstreamText: string = a.stream;
-                        if (upstreamText) {
-                            const textWithoutNewLines: string = upstreamText.replace(
-                                "\n",
-                                ""
-                            );
-                            if (textWithoutNewLines) {
-                                console.log(textWithoutNewLines);
-                            }
-                        }
-                    }
-                );
-            }); // TODO how to catch errors?
-            console.log("Image built");
+            await buildDockerImage(config, docker, dockerfile); // TODO how to catch errors?
         });
 
     program
@@ -201,5 +175,35 @@ async function main() {
 
     await program.parseAsync(process.argv);
 }
+
+async function buildDockerImage(config: DockerConfig, docker: Dockerode, dockerfile: string) {
+    const aliases = config.aliases.map(dockerAliasToString);
+    const stream = await docker.buildImage(
+        {
+            context: path.dirname(dockerfile),
+            src: ["."],
+        },
+        { t: aliases }
+    );
+    await new Promise((resolve, reject) => {
+        docker.modem.followProgress(
+            stream,
+            (err: any, res: any) => (err ? reject(err) : resolve(res)),
+            (a: any) => {
+                const upstreamText: string = a.stream;
+                if (upstreamText) {
+                    const textWithoutNewLines: string = upstreamText.replace(
+                        "\n",
+                        ""
+                    );
+                    if (textWithoutNewLines) {
+                        console.log(textWithoutNewLines);
+                    }
+                }
+            }
+        );
+    });
+}
+
 
 main();
