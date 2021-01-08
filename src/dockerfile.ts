@@ -119,16 +119,16 @@ export const run = (args: string[]): CmdLike => {
 export const label = (key: string, value: any): CmdLike => {
     return new GenericCmd("LABEL", [key + '="' + value.toString() + '"']);
 };
-export const workdir = (dir: string) => {
+export const workdir = (dir: string):CmdLike => {
     return new GenericCmd("WORKDIR", [dir]);
 };
-export const fromAs = (baseImage: string, name: string) => {
+export const fromAs = (baseImage: string, name: string):CmdLike => {
     return new GenericCmd("FROM", [baseImage, "as", name]);
 };
 export const create = (commands: CmdLike[]): string => {
     return new Dockerfile(commands).makeContent();
 };
-export const stageBreak = () => {
+export const stageBreak = ():CmdLike => {
     return new DockerStageBreak();
 };
 export const chgUser = (user: string, group?: string) => {
@@ -138,13 +138,16 @@ export const chgUser = (user: string, group?: string) => {
         return new GenericCmd("USER", [user]);
     }
 };
-export const npmInstall = () => {
+export const npmInstall = (): CmdLike => {
     return new ExecCmd("RUN", ["npm", "install"]);
 };
-export const npmInstallProd = () => {
+export const exec = (args: string[]) : CmdLike => {
+    return new ExecCmd("RUN", args)
+}
+export const npmInstallProd = (): CmdLike => {
     return new ExecCmd("RUN", ["npm", "install", "--only=production"]);
 };
-export const npmRunBuild = () => {
+export const npmRunBuild = (): CmdLike => {
     return new ExecCmd("RUN", ["npm", "run build"]);
 };
 export const expose = (ports: number[], updPorts: number[]) => {
