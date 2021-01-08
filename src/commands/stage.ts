@@ -5,7 +5,7 @@ import { AppConfig } from "../config";
 import * as dockerfile from "../dockerfile";
 
 export async function stage(cwd: string, appConfig: AppConfig) {
-    console.log('Preparing docker environment...')
+    console.log("Preparing docker environment...");
     const dockerImage = createDockerFile(appConfig);
 
     const targetPath = `${cwd}/${appConfig.dockerDir}`;
@@ -45,18 +45,21 @@ export async function stage(cwd: string, appConfig: AppConfig) {
     return `${targetPath}/${appConfig.dockerFile}`;
 }
 
-
-
 function createDockerFile(appConfig: AppConfig) {
     const buildStageName = "buildStage";
     const mainStageName = "mainStage";
     const buildStage = createBuildStage(buildStageName, appConfig);
-    const mainStage = createMainStage(buildStage, mainStageName, appConfig, buildStageName);
+    const mainStage = createMainStage(
+        buildStage,
+        mainStageName,
+        appConfig,
+        buildStageName
+    );
     return dockerfile.create(mainStage);
 }
 
 function createBuildStage(buildStageName: string, appConfig: AppConfig) {
-    const imageConfig = appConfig.imageConfig
+    const imageConfig = appConfig.imageConfig;
     return [
         dockerfile.fromAs(imageConfig.baseImage, buildStageName),
         dockerfile.workdir(imageConfig.workdir),
@@ -66,7 +69,8 @@ function createBuildStage(buildStageName: string, appConfig: AppConfig) {
         ),
     ]
         .concat(
-            appConfig.stages.build.depsLayer.commands.map((c) => dockerfile.exec(c.split(" "))
+            appConfig.stages.build.depsLayer.commands.map((c) =>
+                dockerfile.exec(c.split(" "))
             )
         )
         .concat([
@@ -76,19 +80,35 @@ function createBuildStage(buildStageName: string, appConfig: AppConfig) {
             ),
         ])
         .concat(
-            appConfig.stages.build.contentLayer.commands.map((c) => dockerfile.exec(c.split(" "))
+            appConfig.stages.build.contentLayer.commands.map((c) =>
+                dockerfile.exec(c.split(" "))
             )
         );
 }
 
-function createMainStage(buildStage: dockerfile.CmdLike[], mainStageName: string, appConfig: AppConfig, buildStageName: string) {
-    const imageConfig = appConfig.imageConfig
+function createMainStage(
+    buildStage: dockerfile.CmdLike[],
+    mainStageName: string,
+    appConfig: AppConfig,
+    buildStageName: string
+) {
+    const imageConfig = appConfig.imageConfig;
     return buildStage
         .concat([
             dockerfile.stageBreak(),
             dockerfile.fromAs(imageConfig.baseImage, mainStageName),
-            dockerfile.workdir(imageConfig.workdir),
         ])
+        .concat(
+            appConfig.imageConfig.maintainer
+                ? [
+                      dockerfile.label(
+                          "MAINTAINER",
+                          appConfig.imageConfig.maintainer
+                      ),
+                  ]
+                : []
+        )
+        .concat([dockerfile.workdir(imageConfig.workdir)])
         .concat(
             dockerfile.multiCopy(
                 appConfig.stages.build.depsLayer.files.map((f) => `1/${f}`),
@@ -96,13 +116,16 @@ function createMainStage(buildStage: dockerfile.CmdLike[], mainStageName: string
             )
         )
         .concat(
-            appConfig.stages.main.commands.map((c) => dockerfile.exec(c.split(" "))
+            appConfig.stages.main.commands.map((c) =>
+                dockerfile.exec(c.split(" "))
             )
         )
         .concat([
             dockerfile.copyFrom(
                 buildStageName,
-                [`${imageConfig.workdir}/${appConfig.stages.main.artifactsDir}`],
+                [
+                    `${imageConfig.workdir}/${appConfig.stages.main.artifactsDir}`,
+                ],
                 imageConfig.workdir
             ),
         ])
