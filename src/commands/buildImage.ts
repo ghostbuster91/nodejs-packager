@@ -8,6 +8,7 @@ export async function buildDockerImage(
     docker: Dockerode,
     dockerfile: string
 ) {
+    console.log("Building docker image...")
     const aliases = config.imageConfig.aliases.map(dockerAliasToString);
     const stream = await docker.buildImage(
         {

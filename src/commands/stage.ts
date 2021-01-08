@@ -5,6 +5,7 @@ import { AppConfig } from "../config";
 import * as dockerfile from "../dockerfile";
 
 export async function stage(cwd: string, appConfig: AppConfig) {
+    console.log('Preparing docker environment...')
     const dockerImage = createDockerFile(appConfig);
 
     const targetPath = `${cwd}/${appConfig.dockerDir}`;
@@ -40,7 +41,7 @@ export async function stage(cwd: string, appConfig: AppConfig) {
         await fs.promises.copyFile(file, targetFile);
     }
 
-    console.log("Done");
+    console.log("Done\n");
     return `${targetPath}/${appConfig.dockerFile}`;
 }
 
@@ -60,22 +61,22 @@ function createBuildStage(buildStageName: string, appConfig: AppConfig) {
         dockerfile.fromAs(imageConfig.baseImage, buildStageName),
         dockerfile.workdir(imageConfig.workdir),
         dockerfile.multiCopy(
-            appConfig.buildStage.depsLayer.files.map((f) => `1/${f}`),
+            appConfig.stages.build.depsLayer.files.map((f) => `1/${f}`),
             `${imageConfig.workdir}/`
         ),
     ]
         .concat(
-            appConfig.buildStage.depsLayer.commands.map((c) => dockerfile.exec(c.split(" "))
+            appConfig.stages.build.depsLayer.commands.map((c) => dockerfile.exec(c.split(" "))
             )
         )
         .concat([
             dockerfile.multiCopy(
-                appConfig.buildStage.contentLayer.files.map((f) => `2/${f}`),
+                appConfig.stages.build.contentLayer.files.map((f) => `2/${f}`),
                 `${imageConfig.workdir}/`
             ),
         ])
         .concat(
-            appConfig.buildStage.contentLayer.commands.map((c) => dockerfile.exec(c.split(" "))
+            appConfig.stages.build.contentLayer.commands.map((c) => dockerfile.exec(c.split(" "))
             )
         );
 }
@@ -90,18 +91,18 @@ function createMainStage(buildStage: dockerfile.CmdLike[], mainStageName: string
         ])
         .concat(
             dockerfile.multiCopy(
-                appConfig.buildStage.depsLayer.files.map((f) => `1/${f}`),
+                appConfig.stages.build.depsLayer.files.map((f) => `1/${f}`),
                 `${imageConfig.workdir}/`
             )
         )
         .concat(
-            appConfig.mainStage.commands.map((c) => dockerfile.exec(c.split(" "))
+            appConfig.stages.main.commands.map((c) => dockerfile.exec(c.split(" "))
             )
         )
         .concat([
             dockerfile.copyFrom(
                 buildStageName,
-                [`${imageConfig.workdir}/${appConfig.mainStage.artifactsDir}`],
+                [`${imageConfig.workdir}/${appConfig.stages.main.artifactsDir}`],
                 imageConfig.workdir
             ),
         ])

@@ -1,11 +1,10 @@
-import { Image } from 'dockerode';
-import {DockerAlias,dockerAliasWithTag,dockerAliasToString} from './dockerAlias'
+import { DockerAlias } from "./dockerAlias";
 
 export interface AppConfig {
     dockerDir?: string;
     dockerFile?: string;
     depsFiles?: string[];
-    imageConfig: ImageConfig
+    imageConfig: ImageConfig;
 }
 
 export interface ImageConfig {
@@ -16,5 +15,6 @@ export interface ImageConfig {
     entrypoint: string[];
     command?: string[];
     aliases: DockerAlias[];
-    dockerUpdateLatest?: boolean;
+    dockerUpdateLatest?: string;
+    template?: String;
 }

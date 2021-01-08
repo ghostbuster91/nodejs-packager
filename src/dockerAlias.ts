@@ -14,5 +14,5 @@ export const dockerAliasToString = (alias: DockerAlias): string => {
 };
 
 export const dockerAliasWithTag = (alias: DockerAlias, tag: string): DockerAlias => {
-    return { tag, ...alias };
+    return { ...alias, tag };
 };
