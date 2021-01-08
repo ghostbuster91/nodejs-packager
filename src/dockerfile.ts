@@ -82,6 +82,16 @@ export const add = (args: string[]): CmdLike => {
 export const copy = (from: string, to: string): CmdLike => {
     return new GenericCmd("COPY", [from, to]);
 };
+export const copyFrom = (
+    stage: string,
+    from: string[],
+    to: string
+): CmdLike => {
+    return new GenericCmd(
+        "COPY",
+        [`--from=${stage}`].concat(from).concat([to])
+    );
+};
 export const multiCopy = (from: string[], to: string): CmdLike => {
     return new GenericCmd("COPY", from.concat([to]));
 };
@@ -130,6 +140,12 @@ export const chgUser = (user: string, group?: string) => {
 };
 export const npmInstall = () => {
     return new ExecCmd("RUN", ["npm", "install"]);
+};
+export const npmInstallProd = () => {
+    return new ExecCmd("RUN", ["npm", "install", "--only=production"]);
+};
+export const npmRunBuild = () => {
+    return new ExecCmd("RUN", ["npm", "run build"]);
 };
 export const expose = (ports: number[], updPorts: number[]) => {
     if (ports.length > 0 || updPorts.length > 0) {
