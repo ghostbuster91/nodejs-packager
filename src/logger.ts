@@ -1,4 +1,4 @@
-import { timeStamp } from "console";
+import chalk from "chalk";
 
 export enum Level {
     SILENT = "SILENT",
@@ -25,7 +25,7 @@ export class Logger {
     }
 
     error(msg: string): void {
-        console.error(msg);
+        console.error(chalk.red(msg));
     }
 
     warn(msg: string): void {
@@ -35,7 +35,7 @@ export class Logger {
             this.level == Level.TRACE ||
             this.level == Level.DEBUG
         ) {
-            console.warn(msg);
+            console.warn(chalk.yellow(msg));
         }
     }
 
