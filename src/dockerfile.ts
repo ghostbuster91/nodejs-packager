@@ -107,8 +107,8 @@ export const env = (key: string, value: string): CmdLike => {
     return new GenericCmd("ENV", [`${key}="${value}"`]);
 };
 
-export const volume = (args: string[]): CmdLike => {
-    return new ExecCmd("VOLUME", args);
+export const volume = (volume: string): CmdLike => {
+    return new ExecCmd("VOLUME", [volume]);
 };
 export const entrypoint = (args: string[]): CmdLike => {
     return new ExecCmd("ENTRYPOINT", args);
