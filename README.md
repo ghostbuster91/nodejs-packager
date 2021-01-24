@@ -14,6 +14,8 @@ Covering 100% of the use-cases is not a goal of that project. If you have a very
 Having said that, most popular use-cases should be covered. If your use-case is not covered please file an issue and we can think what to do with it together.
 
 ## Usage 
+*Keep in mind that this project is still in experimental phase. Use it at your own risk!*
+
 Install packager globally:
 `npm install -g @ghostbuster91/nodejs-packager`
 
@@ -26,5 +28,3 @@ and add corresponding entries for each relevant command to the `scripts` section
   "docker-stage": "nodejs-packager stage"
 }
 ```
-
-## Usage
