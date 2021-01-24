@@ -32,16 +32,21 @@ interface TextMessage extends Message {
 interface ErrorMessage extends Message {
     error: string;
 }
+interface StatusMessage extends Message {
+    status: string;
+}
 
 function isTextMessage(msg: Message): msg is TextMessage {
     return "stream" in msg;
 }
-
 function isErrorMessage(msg: Message): msg is ErrorMessage {
     return "error" in msg;
 }
 function isAuxMessage(msg: Message): msg is AuxMessage {
     return "aux" in msg;
+}
+function isStatusMessage(msg: Message): msg is StatusMessage {
+    return "status" in msg;
 }
 
 export async function followProgress(
@@ -76,8 +81,14 @@ export async function followProgress(
                     logger.error(msg.error);
                 } else if (isAuxMessage(msg)) {
                     logger.debug(JSON.stringify(msg.aux));
+                } else if (isStatusMessage(msg)) {
+                    logger.log(msg.status);
                 } else {
-                    logger.warn(`Unrecognized msg from docker daemon ${JSON.stringify(msg)}`);
+                    logger.warn(
+                        `Unrecognized msg from docker daemon ${JSON.stringify(
+                            msg
+                        )}`
+                    );
                 }
             }
         );
