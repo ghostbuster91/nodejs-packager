@@ -9,7 +9,8 @@
   "types": "dist/src/index.d.ts",
   "scripts": {
     "start": "ts-node src/index.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "tsc"
   },
   "keywords": [],
   "author": "",
