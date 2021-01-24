@@ -31,9 +31,13 @@ interface TextMessage extends Message {
 }
 interface ErrorMessage extends Message {
     error: string;
+    errorDetail: ErrorDetail;
 }
 interface StatusMessage extends Message {
     status: string;
+}
+interface ErrorDetail {
+    message: any;
 }
 
 function isTextMessage(msg: Message): msg is TextMessage {
@@ -79,6 +83,7 @@ export async function followProgress(
                     }
                 } else if (isErrorMessage(msg)) {
                     logger.error(msg.error);
+                    logger.debug(JSON.stringify(msg.errorDetail.message))
                 } else if (isAuxMessage(msg)) {
                     logger.debug(JSON.stringify(msg.aux));
                 } else if (isStatusMessage(msg)) {
