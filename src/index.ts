@@ -63,7 +63,20 @@ async function main() {
             console.log("Removing image");
             const config: AppConfig = await readConfig(cwd, cmdObj.config);
             for (const alias of config.imageConfig.aliases) {
-                await docker.getImage(dockerAliasToString(alias)).remove(); //TODO there can be no such image, invoke rmi api directly
+                try {
+                    const image = docker.getImage(dockerAliasToString(alias));
+                    await image.remove();
+                } catch (e) {
+                    if (
+                        e instanceof Error &&
+                        e.message.includes("No such image")
+                    ) {
+                        console.warn(e.message);
+                    } else {
+                        throw e;
+                    }
+                }
+                // await .remove(); //TODO there can be no such image, invoke rmi api directly
             }
         });
 
