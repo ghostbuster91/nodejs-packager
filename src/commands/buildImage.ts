@@ -2,13 +2,15 @@ import Dockerode from "dockerode";
 import path from "path";
 import { dockerAliasToString } from "../dockerAlias";
 import { AppConfig } from "../config";
+import { Logger } from "../logger";
 
 export async function buildDockerImage(
     config: AppConfig,
     docker: Dockerode,
-    dockerfile: string
+    dockerfile: string,
+    logger: Logger
 ): Promise<any> {
-    console.log("Building docker image...");
+    logger.log("Building docker image...");
     const aliases = config.imageConfig.aliases.map(dockerAliasToString);
     const stream = await docker.buildImage(
         {
@@ -17,7 +19,7 @@ export async function buildDockerImage(
         },
         { t: aliases }
     );
-    followProgress(docker, stream);
+    followProgress(docker, stream, logger);
 }
 
 interface Message {}
@@ -44,7 +46,8 @@ function isAuxMessage(msg: Message): msg is AuxMessage {
 
 export async function followProgress(
     docker: Dockerode,
-    stream: NodeJS.ReadableStream
+    stream: NodeJS.ReadableStream,
+    logger: Logger
 ): Promise<any> {
     return new Promise((resolve, reject) => {
         docker.modem.followProgress(
@@ -66,15 +69,15 @@ export async function followProgress(
                             ""
                         );
                         if (textWithoutNewLines) {
-                            console.log(textWithoutNewLines);
+                            logger.log(textWithoutNewLines);
                         }
                     }
                 } else if (isErrorMessage(msg)) {
-                    console.error(msg.error);
+                    logger.error(msg.error);
                 } else if (isAuxMessage(msg)) {
-                    console.debug(JSON.stringify(msg.aux));
+                    logger.debug(JSON.stringify(msg.aux));
                 } else {
-                    console.warn(`Unrecognized msg from docker daemon ${JSON.stringify(msg)}`);
+                    logger.warn(`Unrecognized msg from docker daemon ${JSON.stringify(msg)}`);
                 }
             }
         );

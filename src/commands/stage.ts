@@ -3,11 +3,12 @@ import glob from "fast-glob";
 import path from "path";
 import { AppConfig } from "../config";
 import * as dockerfile from "../dockerfile";
+import { Logger } from "../logger";
 
-export async function stage(cwd: string, appConfig: AppConfig) {
-    console.log("Preparing docker environment...");
+export async function stage(cwd: string, appConfig: AppConfig, logger: Logger) {
+    logger.log("Preparing docker environment...");
     const targetPath = `${cwd}/${appConfig.dockerDir}`;
-    const dockerImage = createDockerFile(appConfig, targetPath);
+    const dockerImage = createDockerFile(appConfig);
 
     await fs.promises.rmdir(targetPath, { recursive: true });
     await fs.promises.mkdir(targetPath, { recursive: true });
@@ -17,21 +18,21 @@ export async function stage(cwd: string, appConfig: AppConfig) {
         { encoding: "utf-8" }
     );
 
-    const layer1Files = await handleFirstLayer(cwd, targetPath);
-    await handleSecondLayer(appConfig, layer1Files, cwd, targetPath);
-    await handleMappedFiles(appConfig, targetPath);
+    const layer1Files = await handleFirstLayer(cwd, targetPath, logger);
+    await handleSecondLayer(appConfig, layer1Files, cwd, targetPath, logger);
+    await handleMappedFiles(appConfig, targetPath, logger);
 
-    console.log("Done\n");
+    logger.log("Done\n");
     return `${targetPath}/${appConfig.dockerFile}`;
 }
 
-async function handleFirstLayer(cwd: string, targetPath: string) {
+async function handleFirstLayer(cwd: string, targetPath: string, logger: Logger) {
     const layer1Files = ["package.json", "package-lock.json"];
 
     for (const file of layer1Files) {
         const relative = path.relative(cwd, file);
         const targetFile = `${targetPath}/1/${relative}`;
-        console.log(`Copying ${file}`);
+        logger.log(`Copying ${file}`);
         await fs.promises.mkdir(path.dirname(targetFile), { recursive: true });
         await fs.promises.copyFile(file, targetFile);
     }
@@ -42,7 +43,7 @@ async function handleSecondLayer(
     appConfig: AppConfig,
     layer1Files: string[],
     cwd: string,
-    targetPath: string
+    targetPath: string, logger: Logger
 ) {
     const ignorePatterns = [
         "**/node_modules/**",
@@ -53,25 +54,25 @@ async function handleSecondLayer(
     for (const file of layer2Files) {
         const relative = path.relative(cwd, file);
         const targetFile = `${targetPath}/2/${relative}`;
-        console.log(`Copying ${file}`);
+        logger.log(`Copying ${file}`);
         await fs.promises.mkdir(path.dirname(targetFile), { recursive: true });
         await fs.promises.copyFile(file, targetFile);
     }
 }
 
-async function handleMappedFiles(appConfig: AppConfig, targetPath: string) {
+async function handleMappedFiles(appConfig: AppConfig, targetPath: string, logger: Logger) {
     for (const mapping of appConfig.imageConfig.mappings) {
-        console.log(`Copying ${mapping.from}`);
+        logger.log(`Copying ${mapping.from}`);
         const targetFile = path.join(targetPath, mapping.to);
         await fs.promises.mkdir(path.dirname(targetFile), { recursive: true });
         await fs.promises.copyFile(mapping.from, targetFile);
     }
 }
 
-function createDockerFile(appConfig: AppConfig, targetPath: string) {
+function createDockerFile(appConfig: AppConfig) {
     const buildStageName = "buildStage";
     const mainStageName = "mainStage";
-    const buildStage = createBuildStage(buildStageName, appConfig, targetPath);
+    const buildStage = createBuildStage(buildStageName, appConfig);
     const mainStage = createMainStage(
         buildStage,
         mainStageName,
@@ -83,9 +84,7 @@ function createDockerFile(appConfig: AppConfig, targetPath: string) {
 
 function createBuildStage(
     buildStageName: string,
-    appConfig: AppConfig,
-    targetPath: string
-) {
+    appConfig: AppConfig) {
     const imageConfig = appConfig.imageConfig;
     return [
         dockerfile.fromAs(imageConfig.baseImage, buildStageName),
