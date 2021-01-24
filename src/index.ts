@@ -35,6 +35,7 @@ async function main() {
         .action(async (cmdObj) => {
             const config: AppConfig = await readConfig(cwd, cmdObj.config);
             await stage(cwd, config);
+            console.log("Done");
         });
 
     program
@@ -48,7 +49,8 @@ async function main() {
         .action(async (cmdObj) => {
             const config: AppConfig = await readConfig(cwd, cmdObj.config);
             const dockerfile = await stage(cwd, config);
-            await buildDockerImage(config, docker, dockerfile); // TODO how to catch errors?
+            await buildDockerImage(config, docker, dockerfile);
+            console.log("Done");
         });
 
     program
@@ -63,20 +65,21 @@ async function main() {
         )
         .action(async (cmdObj) => {
             const auth = {
-                username: 'username',
-                password: 'password',
-                auth: '',
-                email: 'your@email.email',
-                serveraddress: 'https://index.docker.io/v1'
-              };
+                username: "username",
+                password: "password",
+                auth: "",
+                email: "your@email.email",
+                serveraddress: "https://index.docker.io/v1",
+            };
             const config: AppConfig = await readConfig(cwd, cmdObj.config);
             const dockerfile = await stage(cwd, config);
-            await buildDockerImage(config, docker, dockerfile); // TODO how to catch errors?
+            await buildDockerImage(config, docker, dockerfile);
             for (const alias of config.imageConfig.aliases) {
                 const image = docker.getImage(dockerAliasToString(alias));
-                const stream  = await image.push({authConfig: auth});
+                const stream = await image.push({ authConfig: auth });
                 await followProgress(docker, stream);
             }
+            console.log("Done");
         });
 
     program
@@ -88,11 +91,12 @@ async function main() {
         )
         .description("Removes the built image from the local Docker server.")
         .action(async (cmdObj) => {
-            console.log("Removing image");
             const config: AppConfig = await readConfig(cwd, cmdObj.config);
             for (const alias of config.imageConfig.aliases) {
+                const imageTag = dockerAliasToString(alias);
+                const image = docker.getImage(imageTag);
                 try {
-                    const image = docker.getImage(dockerAliasToString(alias));
+                    console.log(`Removing ${imageTag}`);
                     await image.remove();
                 } catch (e) {
                     if (
@@ -105,6 +109,7 @@ async function main() {
                     }
                 }
             }
+            console.log("Done");
         });
 
     await program.parseAsync(process.argv);

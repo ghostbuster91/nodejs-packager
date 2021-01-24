@@ -20,6 +20,28 @@ export async function buildDockerImage(
     followProgress(docker, stream);
 }
 
+interface Message {}
+interface AuxMessage extends Message {
+    aux: any;
+}
+interface TextMessage extends Message {
+    stream: string;
+}
+interface ErrorMessage extends Message {
+    error: string;
+}
+
+function isTextMessage(msg: Message): msg is TextMessage {
+    return "stream" in msg;
+}
+
+function isErrorMessage(msg: Message): msg is ErrorMessage {
+    return "error" in msg;
+}
+function isAuxMessage(msg: Message): msg is AuxMessage {
+    return "aux" in msg;
+}
+
 export async function followProgress(
     docker: Dockerode,
     stream: NodeJS.ReadableStream
@@ -32,20 +54,27 @@ export async function followProgress(
                     console.error(JSON.stringify(err));
                     reject(err);
                 } else {
-                    console.log(`# ${JSON.stringify(res)}`);
                     resolve(res);
                 }
             },
-            (a: any) => {
-                const upstreamText: string = a.stream;
-                if (upstreamText) {
-                    const textWithoutNewLines: string = upstreamText.replace(
-                        "\n",
-                        ""
-                    );
-                    if (textWithoutNewLines) {
-                        console.log(textWithoutNewLines);
+            (msg: Message) => {
+                if (isTextMessage(msg)) {
+                    const upstreamText = msg.stream;
+                    if (upstreamText) {
+                        const textWithoutNewLines: string = upstreamText.replace(
+                            "\n",
+                            ""
+                        );
+                        if (textWithoutNewLines) {
+                            console.log(textWithoutNewLines);
+                        }
                     }
+                } else if (isErrorMessage(msg)) {
+                    console.error(msg.error);
+                } else if (isAuxMessage(msg)) {
+                    console.debug(JSON.stringify(msg.aux));
+                } else {
+                    console.warn(`Unrecognized msg from docker daemon ${JSON.stringify(msg)}`);
                 }
             }
         );
