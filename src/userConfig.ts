@@ -7,9 +7,14 @@ export interface AppConfig {
     imageConfig: ImageConfig;
 }
 
-export interface Mapping{
+export interface Mapping {
     from: string;
     to: string;
+}
+
+export interface EnvVar {
+    key: string;
+    value: string;
 }
 
 export interface ImageConfig {
@@ -23,5 +28,6 @@ export interface ImageConfig {
     dockerUpdateLatest?: string;
     template?: string;
     maintainer?: string;
-    mappings: Mapping[]
+    mappings?: Mapping[];
+    envVars?: EnvVar[];
 }

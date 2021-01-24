@@ -148,6 +148,11 @@ function createMainStage(
             )
         )
         .concat(
+            appConfig.imageConfig.envVars.map((e) =>
+                dockerfile.env(e.key, e.value)
+            )
+        )
+        .concat(
             dockerfile.expose(
                 imageConfig.exposedPorts,
                 imageConfig.exposedUpdPorts

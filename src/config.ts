@@ -21,7 +21,8 @@ export interface ImageConfig {
     command: string[];
     aliases: DockerAlias[];
     maintainer?: string;
-    mappings: Mapping[]
+    mappings: Mapping[],
+    envVars: EnvVar[]
 }
 
 export interface BuildStage {
@@ -49,6 +50,11 @@ export interface Mapping {
     to: string;
 }
 
+export interface EnvVar {
+    key: string,
+    value: string
+}
+
 export const createConfig = (userConfig: uc.AppConfig): AppConfig => {
     return {
         imageConfig: {
@@ -74,7 +80,8 @@ export const createConfig = (userConfig: uc.AppConfig): AppConfig => {
             entrypoint: userConfig.imageConfig.entrypoint,
             command: userConfig.imageConfig.command ?? [],
             maintainer: userConfig.imageConfig.maintainer,
-            mappings: userConfig.imageConfig.mappings
+            mappings: userConfig.imageConfig.mappings ?? [],
+            envVars: userConfig.imageConfig.envVars ?? []
         },
         dockerDir: userConfig.dockerDir ?? ".docker",
         dockerFile: userConfig.dockerFile ?? "Dockerfile",
