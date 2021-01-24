@@ -6,9 +6,9 @@ import * as dockerfile from "../dockerfile";
 
 export async function stage(cwd: string, appConfig: AppConfig) {
     console.log("Preparing docker environment...");
-    const dockerImage = createDockerFile(appConfig);
-
     const targetPath = `${cwd}/${appConfig.dockerDir}`;
+    const dockerImage = createDockerFile(appConfig, targetPath);
+
     await fs.promises.rmdir(targetPath, { recursive: true });
     await fs.promises.mkdir(targetPath, { recursive: true });
     await fs.promises.writeFile(
@@ -68,10 +68,10 @@ async function handleMappedFiles(appConfig: AppConfig, targetPath: string) {
     }
 }
 
-function createDockerFile(appConfig: AppConfig) {
+function createDockerFile(appConfig: AppConfig, targetPath: string) {
     const buildStageName = "buildStage";
     const mainStageName = "mainStage";
-    const buildStage = createBuildStage(buildStageName, appConfig);
+    const buildStage = createBuildStage(buildStageName, appConfig, targetPath);
     const mainStage = createMainStage(
         buildStage,
         mainStageName,
@@ -81,7 +81,11 @@ function createDockerFile(appConfig: AppConfig) {
     return dockerfile.create(mainStage);
 }
 
-function createBuildStage(buildStageName: string, appConfig: AppConfig) {
+function createBuildStage(
+    buildStageName: string,
+    appConfig: AppConfig,
+    targetPath: string
+) {
     const imageConfig = appConfig.imageConfig;
     return [
         dockerfile.fromAs(imageConfig.baseImage, buildStageName),
@@ -104,7 +108,10 @@ function createBuildStage(buildStageName: string, appConfig: AppConfig) {
         ])
         .concat(
             appConfig.imageConfig.mappings.map((m) =>
-                dockerfile.copy(m.from, m.to)
+                dockerfile.copy(
+                    m.to.split(path.sep).slice(1).join(path.sep),
+                    m.to
+                )
             )
         )
         .concat(

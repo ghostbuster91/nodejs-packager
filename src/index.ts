@@ -6,7 +6,7 @@ import { dockerAliasToString } from "./dockerAlias";
 import * as uc from "./userConfig";
 import { AppConfig, createConfig } from "./config";
 import { stage } from "./commands/stage";
-import { buildDockerImage } from "./commands/buildImage";
+import { buildDockerImage, followProgress } from "./commands/buildImage";
 
 async function readConfig(cwd: string, configFile: string): Promise<AppConfig> {
     const userConfig: uc.AppConfig = await import(`${cwd}/${configFile}`);
@@ -52,6 +52,34 @@ async function main() {
         });
 
     program
+        .command("publish")
+        .option(
+            "-c, --config <fileName>",
+            "config file name",
+            "dockerconfig.ts"
+        )
+        .description(
+            "Builds an image using the local Docker server and pubishes it to the remote repository"
+        )
+        .action(async (cmdObj) => {
+            const auth = {
+                username: 'username',
+                password: 'password',
+                auth: '',
+                email: 'your@email.email',
+                serveraddress: 'https://index.docker.io/v1'
+              };
+            const config: AppConfig = await readConfig(cwd, cmdObj.config);
+            const dockerfile = await stage(cwd, config);
+            await buildDockerImage(config, docker, dockerfile); // TODO how to catch errors?
+            for (const alias of config.imageConfig.aliases) {
+                const image = docker.getImage(dockerAliasToString(alias));
+                const stream  = await image.push({authConfig: auth});
+                await followProgress(docker, stream);
+            }
+        });
+
+    program
         .command("clean")
         .option(
             "-c, --config <fileName>",
@@ -76,7 +104,6 @@ async function main() {
                         throw e;
                     }
                 }
-                // await .remove(); //TODO there can be no such image, invoke rmi api directly
             }
         });
 

@@ -7,8 +7,8 @@ export async function buildDockerImage(
     config: AppConfig,
     docker: Dockerode,
     dockerfile: string
-) {
-    console.log("Building docker image...")
+): Promise<any> {
+    console.log("Building docker image...");
     const aliases = config.imageConfig.aliases.map(dockerAliasToString);
     const stream = await docker.buildImage(
         {
@@ -17,10 +17,25 @@ export async function buildDockerImage(
         },
         { t: aliases }
     );
-    await new Promise((resolve, reject) => {
+    followProgress(docker, stream);
+}
+
+export async function followProgress(
+    docker: Dockerode,
+    stream: NodeJS.ReadableStream
+): Promise<any> {
+    return new Promise((resolve, reject) => {
         docker.modem.followProgress(
             stream,
-            (err: any, res: any) => (err ? reject(err) : resolve(res)),
+            (err: any, res: any) => {
+                if (err) {
+                    console.error(JSON.stringify(err));
+                    reject(err);
+                } else {
+                    console.log(`# ${JSON.stringify(res)}`);
+                    resolve(res);
+                }
+            },
             (a: any) => {
                 const upstreamText: string = a.stream;
                 if (upstreamText) {
