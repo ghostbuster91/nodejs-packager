@@ -7,7 +7,10 @@ imageConfig: {
     aliases: [{name: "node-test-img", tag: "13"}, {name: "node-test-img", tag: "not-latest"}],
     template: 'NPM_JS',
     dockerUpdateLatest: 'true',
-    exposedPorts: [3000]
+    exposedPorts: [3000],
+    mappings: [
+        {from: "other-resource.txt", to: "/opt/test/other-resource.txt"}
+    ]
 }
 }	
 
