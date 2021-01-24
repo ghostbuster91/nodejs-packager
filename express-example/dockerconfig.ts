@@ -11,7 +11,8 @@ imageConfig: {
     mappings: [
         {from: "other-resource.txt", to: "/opt/test/other-resource.txt"}
     ],
-    envVars: [{key: "DEBUG_ENABLED", value: "TRUE"}]
+    envVars: [{key: "DEBUG_ENABLED", value: "TRUE"}],
+    volumes: ["/opt/docker/logs"]
 }
 }	
 

@@ -17,6 +17,15 @@ export async function stage(cwd: string, appConfig: AppConfig) {
         { encoding: "utf-8" }
     );
 
+    const layer1Files = await handleFirstLayer(cwd, targetPath);
+    await handleSecondLayer(appConfig, layer1Files, cwd, targetPath);
+    await handleMappedFiles(appConfig, targetPath);
+
+    console.log("Done\n");
+    return `${targetPath}/${appConfig.dockerFile}`;
+}
+
+async function handleFirstLayer(cwd: string, targetPath: string) {
     const layer1Files = ["package.json", "package-lock.json"];
 
     for (const file of layer1Files) {
@@ -26,7 +35,15 @@ export async function stage(cwd: string, appConfig: AppConfig) {
         await fs.promises.mkdir(path.dirname(targetFile), { recursive: true });
         await fs.promises.copyFile(file, targetFile);
     }
+    return layer1Files;
+}
 
+async function handleSecondLayer(
+    appConfig: AppConfig,
+    layer1Files: string[],
+    cwd: string,
+    targetPath: string
+) {
     const ignorePatterns = [
         "**/node_modules/**",
         `**/${appConfig.dockerDir}/**`,
@@ -40,16 +57,15 @@ export async function stage(cwd: string, appConfig: AppConfig) {
         await fs.promises.mkdir(path.dirname(targetFile), { recursive: true });
         await fs.promises.copyFile(file, targetFile);
     }
+}
 
+async function handleMappedFiles(appConfig: AppConfig, targetPath: string) {
     for (const mapping of appConfig.imageConfig.mappings) {
         console.log(`Copying ${mapping.from}`);
         const targetFile = path.join(targetPath, mapping.to);
         await fs.promises.mkdir(path.dirname(targetFile), { recursive: true });
         await fs.promises.copyFile(mapping.from, targetFile);
     }
-
-    console.log("Done\n");
-    return `${targetPath}/${appConfig.dockerFile}`;
 }
 
 function createDockerFile(appConfig: AppConfig) {
@@ -157,6 +173,12 @@ function createMainStage(
                 imageConfig.exposedPorts,
                 imageConfig.exposedUpdPorts
             ) ?? []
+        )
+        .concat(
+            appConfig.imageConfig.volumes.flatMap((v) => [
+                dockerfile.run(["mkdir", "-p", v]),
+                dockerfile.volume(v),
+            ])
         )
         .concat([
             dockerfile.entrypoint(imageConfig.entrypoint),

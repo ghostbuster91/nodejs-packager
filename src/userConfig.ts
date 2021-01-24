@@ -30,4 +30,5 @@ export interface ImageConfig {
     maintainer?: string;
     mappings?: Mapping[];
     envVars?: EnvVar[];
+    volumes?: string[];
 }
