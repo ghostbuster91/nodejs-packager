@@ -23,7 +23,7 @@
     "typescript": "^4.1.3"
   },
   "bin": {
-    "js-docker-core": "dist/src/index.js"
+    "nodejs-packager": "dist/src/index.js"
   },
   "dependencies": {
     "commander": "^6.2.1",
