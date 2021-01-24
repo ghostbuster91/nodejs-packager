@@ -10,7 +10,8 @@ imageConfig: {
     exposedPorts: [3000],
     mappings: [
         {from: "other-resource.txt", to: "/opt/test/other-resource.txt"}
-    ]
+    ],
+    envVars: [{key: "DEBUG_ENABLED", value: "TRUE"}]
 }
 }	
 
