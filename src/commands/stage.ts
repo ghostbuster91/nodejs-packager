@@ -41,6 +41,13 @@ export async function stage(cwd: string, appConfig: AppConfig) {
         await fs.promises.copyFile(file, targetFile);
     }
 
+    for (const mapping of appConfig.imageConfig.mappings) {
+        console.log(`Copying ${mapping.from}`);
+        const targetFile = path.join(targetPath, mapping.to);
+        await fs.promises.mkdir(path.dirname(targetFile), { recursive: true });
+        await fs.promises.copyFile(mapping.from, targetFile);
+    }
+
     console.log("Done\n");
     return `${targetPath}/${appConfig.dockerFile}`;
 }
@@ -80,6 +87,11 @@ function createBuildStage(buildStageName: string, appConfig: AppConfig) {
             ),
         ])
         .concat(
+            appConfig.imageConfig.mappings.map((m) =>
+                dockerfile.copy(m.from, m.to)
+            )
+        )
+        .concat(
             appConfig.stages.build.contentLayer.commands.map((c) =>
                 dockerfile.exec(c.split(" "))
             )
@@ -98,6 +110,7 @@ function createMainStage(
             dockerfile.stageBreak(),
             dockerfile.fromAs(imageConfig.baseImage, mainStageName),
         ])
+        .concat([dockerfile.label("nodejs-packager-stage", "intermediate")])
         .concat(
             appConfig.imageConfig.maintainer
                 ? [
@@ -129,6 +142,11 @@ function createMainStage(
                 imageConfig.workdir
             ),
         ])
+        .concat(
+            appConfig.imageConfig.mappings.map((m) =>
+                dockerfile.copyFrom(buildStageName, [m.to], m.to)
+            )
+        )
         .concat(
             dockerfile.expose(
                 imageConfig.exposedPorts,

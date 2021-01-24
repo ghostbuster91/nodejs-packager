@@ -5,7 +5,7 @@ export interface AppConfig {
     dockerDir: string;
     dockerFile: string;
     imageConfig: ImageConfig;
-    stages: Stages;
+    stages: Stages
 }
 export interface Stages {
     build: BuildStage;
@@ -21,6 +21,7 @@ export interface ImageConfig {
     command: string[];
     aliases: DockerAlias[];
     maintainer?: string;
+    mappings: Mapping[]
 }
 
 export interface BuildStage {
@@ -41,6 +42,11 @@ export interface MainStage {
 export enum Template {
     NPM_TS = "NPM_TS",
     NPM_JS = "NPM_JS",
+}
+
+export interface Mapping {
+    from: string;
+    to: string;
 }
 
 export const createConfig = (userConfig: uc.AppConfig): AppConfig => {
@@ -68,6 +74,7 @@ export const createConfig = (userConfig: uc.AppConfig): AppConfig => {
             entrypoint: userConfig.imageConfig.entrypoint,
             command: userConfig.imageConfig.command ?? [],
             maintainer: userConfig.imageConfig.maintainer,
+            mappings: userConfig.imageConfig.mappings
         },
         dockerDir: userConfig.dockerDir ?? ".docker",
         dockerFile: userConfig.dockerFile ?? "Dockerfile",

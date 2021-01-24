@@ -7,6 +7,11 @@ export interface AppConfig {
     imageConfig: ImageConfig;
 }
 
+export interface Mapping{
+    from: string;
+    to: string;
+}
+
 export interface ImageConfig {
     baseImage: string;
     workdir?: string;
@@ -18,4 +23,5 @@ export interface ImageConfig {
     dockerUpdateLatest?: string;
     template?: string;
     maintainer?: string;
+    mappings: Mapping[]
 }
