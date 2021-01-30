@@ -33,11 +33,14 @@ and add corresponding entries for each relevant command to the `scripts` section
 
 Commands:
 - `build`
-  Builds an image using the local Docker server.
+
+   Builds an image using the local Docker server.
 - `publish`
-  Builds an image using the local Docker server and pubishes it to the remote repository
+
+   Builds an image using the local Docker server and pubishes it to the remote repository
 - `stage` 
-  Generates a directory with the Dockerfile and environment prepared for building a Docker image. Usefull mainly for debugging purpose.
+
+   Generates a directory with the Dockerfile and environment prepared for building a Docker image. Usefull mainly for debugging purpose.
 
 ```
 Usage: nodejs-packager [options] [command]
