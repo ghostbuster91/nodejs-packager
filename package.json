@@ -18,6 +18,7 @@
   "devDependencies": {
     "@types/chalk": "^2.2.0",
     "@types/dockerode": "^3.2.1",
+    "@types/inquirer": "^7.3.1",
     "@types/node": "^14.14.20",
     "nodemon": "^2.0.6",
     "prettier": "^2.2.1",
@@ -31,7 +32,8 @@
     "chalk": "^3.0.0",
     "commander": "^6.2.1",
     "dockerode": "^3.2.1",
-    "fast-glob": "^3.2.4"
+    "fast-glob": "^3.2.4",
+    "inquirer": "^7.3.3"
   },
   "publishConfig": {
     "access": "public"

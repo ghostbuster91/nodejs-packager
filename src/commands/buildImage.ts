@@ -87,6 +87,7 @@ export async function followProgress(
                 } else if (isAuxMessage(msg)) {
                     logger.debug(JSON.stringify(msg.aux));
                 } else if (isStatusMessage(msg)) {
+                    logger.trace(JSON.stringify(msg));
                     logger.log(msg.status);
                 } else {
                     logger.warn(

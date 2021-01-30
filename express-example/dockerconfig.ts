@@ -4,9 +4,9 @@ const userConfig = {
 imageConfig: {
     baseImage: "node:15-alpine",
     entrypoint: ["node", "index.js"],
-    aliases: [{name: "node-test-img", tag: "13"}, {name: "node-test-img", tag: "not-latest"}],
+    aliases: [{name: "kghost0/node-test-img", tag: "13"}],
     template: 'NPM_JS',
-    dockerUpdateLatest: 'true',
+    dockerUpdateLatest: 'false',
     exposedPorts: [3000],
     mappings: [
         {from: "other-resource.txt", to: "/opt/test/other-resource.txt"}

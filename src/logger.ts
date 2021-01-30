@@ -17,7 +17,7 @@ export class Logger {
 
     static fromArgs(cmdObject: any): Logger {
         try {
-            return new Logger(Level[cmdObject.loglevel as keyof typeof Level]);
+            return new Logger(Level[cmdObject.logLevel as keyof typeof Level]);
         } catch (ex) {
             console.log(`Unsupported log level :${cmdObject.log_level}`);
             throw ex;
