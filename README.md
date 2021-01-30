@@ -1,6 +1,8 @@
 # nodejs-packager
 
-This project is heavily inspired by its bigger brother from the scala environment - [`sbt-native-packager`](https://github.com/sbt/sbt-native-packager)
+This project draws inspiration from various projects from jvm ecosystem:
+- [sbt-native-packager](https://github.com/sbt/sbt-native-packager)
+- [jib](https://github.com/GoogleContainerTools/jib)
 
 
 ## Goals of the project
