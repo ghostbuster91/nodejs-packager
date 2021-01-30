@@ -46,5 +46,6 @@ Commands:
   build                        Builds an image using the local Docker server.
   publish [options]            Builds an image using the local Docker server and pubishes it to the remote repository
   clean                        Deletes all the temporary files and removes the built image from the local Docker server.
+  init <template>              Generates initial dockerconfig.ts for given template
   help [command]               display help for command
   ```

@@ -4,7 +4,7 @@ import commander from "commander";
 import Dockerode from "dockerode";
 import { dockerAliasToString } from "./dockerAlias";
 import * as uc from "./userConfig";
-import { AppConfig, createConfig } from "./config";
+import { AppConfig, createConfig, Template } from "./config";
 import { stage } from "./commands/stage";
 import { buildDockerImage, followProgress } from "./commands/buildImage";
 import { Logger } from "./logger";
@@ -24,6 +24,7 @@ async function readConfig(
 
 async function main() {
     const program = commander.program;
+    const cwd = process.cwd();
 
     program
         .version("0.2.0", "-v, --version")
@@ -40,7 +41,6 @@ async function main() {
             "Generates a directory with the Dockerfile and environment prepared for building a Docker image."
         )
         .action(async () => {
-            const cwd = process.cwd();
             console.log(`Current working directory: ${cwd}`);
             const logger = Logger.fromArgs(program.opts());
             const config: AppConfig = await readConfig(
@@ -85,7 +85,6 @@ async function main() {
             const docker = new Dockerode({
                 socketPath: "/var/run/docker.sock",
             });
-            const cwd = process.cwd();
             console.log(`Current working directory: ${cwd}`);
             const logger = Logger.fromArgs(program.opts());
             const config: AppConfig = await readConfig(
@@ -121,7 +120,6 @@ async function main() {
             const docker = new Dockerode({
                 socketPath: "/var/run/docker.sock",
             });
-            const cwd = process.cwd();
             const logger = Logger.fromArgs(program.opts());
             const config: AppConfig = await readConfig(
                 cwd,
@@ -146,10 +144,56 @@ async function main() {
                 }
             }
             const deletionTarget = path.join(cwd, ".docker");
-            logger.warn(`Removing ${deletionTarget}`)
+            logger.warn(`Removing ${deletionTarget}`);
             await fs.promises.rm(deletionTarget, { recursive: true });
             logger.log("Done");
         });
+
+    program
+        .command("init")
+        .description("Generates initial dockerconfig.ts for given template")
+        .arguments("<template>")
+        .action(async (template) => {
+            console.log(`Current working directory: ${cwd}`);
+            const logger = Logger.fromArgs(program.opts());
+            const targetConfigFile = path.join(cwd, "dockerconfig.ts");
+            if (template == Template.NPM_JS.toString()) {
+                const dockerconfig = `const userConfig = {
+                    imageConfig: {
+                        baseImage: "node:15-alpine",
+                        entrypoint: ["node", "index.js"],
+                        template: 'NPM_JS',
+                        aliases: [{name: "nodejs-example-alias", tag: "latest"}],
+                    }
+                    }	
+                    
+                    module.exports = userConfig`;
+                await fs.promises.writeFile(targetConfigFile, dockerconfig, {
+                    encoding: "utf-8",
+                });
+                logger.log(`Config saved to ${targetConfigFile}`);
+            } else if (template == Template.NPM_TS.toString()) {
+                const dockerconfig = `const userConfig = {
+                    imageConfig: {
+                        baseImage: "node:15-alpine",
+                        entrypoint: ["node", "index.js"],
+                        template: 'NPM_TS',
+                        aliases: [{name: "nodejs-example-alias", tag: "latest"}],
+                    }
+                    }	
+                    
+                    module.exports = userConfig`;
+                await fs.promises.writeFile(targetConfigFile, dockerconfig, {
+                    encoding: "utf-8",
+                });
+                logger.log(`Config saved to ${targetConfigFile}`);
+            } else {
+                logger.error(
+                    `Unrecognized template. Supported templates are: [${Template.NPM_JS.toString()}, ${Template.NPM_TS.toString()}]`
+                );
+            }
+        });
+
     await program.parseAsync(process.argv);
 }
 

@@ -7,10 +7,10 @@ import { Logger } from "../logger";
 
 export async function stage(cwd: string, appConfig: AppConfig, logger: Logger) {
     logger.log("Preparing docker environment...");
-    const targetPath = `${cwd}/${appConfig.dockerDir}`;
+    const targetPath = path.join(cwd, appConfig.dockerDir);
     const dockerImage = createDockerFile(appConfig);
 
-    await fs.promises.rmdir(targetPath, { recursive: true });
+    await fs.promises.rm(targetPath, { recursive: true });
     await fs.promises.mkdir(targetPath, { recursive: true });
     await fs.promises.writeFile(
         `${targetPath}/${appConfig.dockerFile}`,
@@ -26,7 +26,11 @@ export async function stage(cwd: string, appConfig: AppConfig, logger: Logger) {
     return `${targetPath}/${appConfig.dockerFile}`;
 }
 
-async function handleFirstLayer(cwd: string, targetPath: string, logger: Logger) {
+async function handleFirstLayer(
+    cwd: string,
+    targetPath: string,
+    logger: Logger
+) {
     const layer1Files = ["package.json", "package-lock.json"];
 
     for (const file of layer1Files) {
@@ -43,7 +47,8 @@ async function handleSecondLayer(
     appConfig: AppConfig,
     layer1Files: string[],
     cwd: string,
-    targetPath: string, logger: Logger
+    targetPath: string,
+    logger: Logger
 ) {
     const ignorePatterns = [
         "**/node_modules/**",
@@ -60,7 +65,11 @@ async function handleSecondLayer(
     }
 }
 
-async function handleMappedFiles(appConfig: AppConfig, targetPath: string, logger: Logger) {
+async function handleMappedFiles(
+    appConfig: AppConfig,
+    targetPath: string,
+    logger: Logger
+) {
     for (const mapping of appConfig.imageConfig.mappings) {
         logger.log(`Copying ${mapping.from}`);
         const targetFile = path.join(targetPath, mapping.to);
@@ -82,9 +91,7 @@ function createDockerFile(appConfig: AppConfig) {
     return dockerfile.create(mainStage);
 }
 
-function createBuildStage(
-    buildStageName: string,
-    appConfig: AppConfig) {
+function createBuildStage(buildStageName: string, appConfig: AppConfig) {
     const imageConfig = appConfig.imageConfig;
     return [
         dockerfile.fromAs(imageConfig.baseImage, buildStageName),
