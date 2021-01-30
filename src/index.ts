@@ -9,6 +9,8 @@ import { stage } from "./commands/stage";
 import { buildDockerImage, followProgress } from "./commands/buildImage";
 import { Logger } from "./logger";
 import { acquireCredentials } from "./credentials-handler";
+import fs from "fs";
+import path from "path";
 
 async function readConfig(
     cwd: string,
@@ -21,29 +23,29 @@ async function readConfig(
 }
 
 async function main() {
-    const docker = new Dockerode({ socketPath: "/var/run/docker.sock" });
-    const cwd = process.cwd();
-    console.log(`Current working directory: ${cwd}`);
     const program = commander.program;
 
-    program.version("0.2.0", "-v, --version");
-
     program
-        .command("stage")
+        .version("0.2.0", "-v, --version")
+        .option("-l, --log-level <log_level>", "log level", "INFO")
         .option(
             "-c, --config <fileName>",
             "config file name",
             "dockerconfig.ts"
-        )
-        .option("-l, --log-level <log_level>", "log level", "INFO")
+        );
+
+    program
+        .command("stage")
         .description(
             "Generates a directory with the Dockerfile and environment prepared for building a Docker image."
         )
-        .action(async (cmdObj) => {
-            const logger = Logger.fromArgs(cmdObj);
+        .action(async () => {
+            const cwd = process.cwd();
+            console.log(`Current working directory: ${cwd}`);
+            const logger = Logger.fromArgs(program.opts());
             const config: AppConfig = await readConfig(
                 cwd,
-                cmdObj.config,
+                program.opts().config,
                 logger
             );
             await stage(cwd, config, logger);
@@ -52,18 +54,17 @@ async function main() {
 
     program
         .command("build")
-        .option(
-            "-c, --config <fileName>",
-            "config file name",
-            "dockerconfig.ts"
-        )
-        .option("-l, --log-level <log_level>", "log level", "INFO")
         .description("Builds an image using the local Docker server.")
-        .action(async (cmdObj) => {
-            const logger = Logger.fromArgs(cmdObj);
+        .action(async () => {
+            const docker = new Dockerode({
+                socketPath: "/var/run/docker.sock",
+            });
+            const cwd = process.cwd();
+            console.log(`Current working directory: ${cwd}`);
+            const logger = Logger.fromArgs(program.opts());
             const config: AppConfig = await readConfig(
                 cwd,
-                cmdObj.config,
+                program.opts().config,
                 logger
             );
             const dockerfile = await stage(cwd, config, logger);
@@ -74,12 +75,6 @@ async function main() {
     program
         .command("publish")
         .option(
-            "-c, --config <fileName>",
-            "config file name",
-            "dockerconfig.ts"
-        )
-        .option("-l, --log-level <log_level>", "log level", "INFO")
-        .option(
             "--auth",
             "Will ask for user credentials rather than using daemon wide credentials"
         )
@@ -87,10 +82,15 @@ async function main() {
             "Builds an image using the local Docker server and pubishes it to the remote repository"
         )
         .action(async (cmdObj) => {
-            const logger = Logger.fromArgs(cmdObj);
+            const docker = new Dockerode({
+                socketPath: "/var/run/docker.sock",
+            });
+            const cwd = process.cwd();
+            console.log(`Current working directory: ${cwd}`);
+            const logger = Logger.fromArgs(program.opts());
             const config: AppConfig = await readConfig(
                 cwd,
-                cmdObj.config,
+                program.opts().config,
                 logger
             );
             const shouldAuthenticate: boolean = cmdObj.auth;
@@ -114,18 +114,18 @@ async function main() {
 
     program
         .command("clean")
-        .option(
-            "-c, --config <fileName>",
-            "config file name",
-            "dockerconfig.ts"
+        .description(
+            "Deletes all the temporary files and removes the built image from the local Docker server."
         )
-        .option("-l, --log-level <log_level>", "log level", "INFO")
-        .description("Removes the built image from the local Docker server.")
-        .action(async (cmdObj) => {
-            const logger = Logger.fromArgs(cmdObj);
+        .action(async () => {
+            const docker = new Dockerode({
+                socketPath: "/var/run/docker.sock",
+            });
+            const cwd = process.cwd();
+            const logger = Logger.fromArgs(program.opts());
             const config: AppConfig = await readConfig(
                 cwd,
-                cmdObj.config,
+                program.opts().config,
                 logger
             );
             for (const alias of config.imageConfig.aliases) {
@@ -145,6 +145,9 @@ async function main() {
                     }
                 }
             }
+            const deletionTarget = path.join(cwd, ".docker");
+            logger.warn(`Removing ${deletionTarget}`)
+            await fs.promises.rm(deletionTarget, { recursive: true });
             logger.log("Done");
         });
     await program.parseAsync(process.argv);

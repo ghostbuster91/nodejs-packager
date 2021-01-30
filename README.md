@@ -31,28 +31,20 @@ and add corresponding entries for each relevant command to the `scripts` section
 }
 ```
 
-Commands:
-- `build`
-
-   Builds an image using the local Docker server.
-- `publish`
-
-   Builds an image using the local Docker server and pubishes it to the remote repository
-- `stage` 
-
-   Generates a directory with the Dockerfile and environment prepared for building a Docker image. Usefull mainly for debugging purpose.
-
 ```
 Usage: nodejs-packager [options] [command]
 
 Options:
-  -v, --version           output the version number
-  -h, --help              display help for command
+  -v, --version                output the version number
+  -l, --log-level <log_level>  log level (default: "INFO")
+  -c, --config <fileName>      config file name (default: "dockerconfig.ts")
+  -h, --help                   display help for command
 
 Commands:
-  stage [options]         Generates a directory with the Dockerfile and environment prepared for creating a Docker image.
-  publishLocal [options]  Builds an image using the local Docker server.
-  publish [options]       Builds an image using the local Docker server and pubishes it to the remote repository
-  clean [options]         Removes the built image from the local Docker server.
-  help [command]          display help for command
+  stage                        Generates a directory with the Dockerfile and environment prepared for building a Docker
+                               image.
+  build                        Builds an image using the local Docker server.
+  publish [options]            Builds an image using the local Docker server and pubishes it to the remote repository
+  clean                        Deletes all the temporary files and removes the built image from the local Docker server.
+  help [command]               display help for command
   ```
