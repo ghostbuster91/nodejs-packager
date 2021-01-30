@@ -37,7 +37,7 @@ async function main() {
         )
         .option("-l, --log-level <log_level>", "log level", "INFO")
         .description(
-            "Generates a directory with the Dockerfile and environment prepared for creating a Docker image."
+            "Generates a directory with the Dockerfile and environment prepared for building a Docker image."
         )
         .action(async (cmdObj) => {
             const logger = Logger.fromArgs(cmdObj);
@@ -51,7 +51,7 @@ async function main() {
         });
 
     program
-        .command("publishLocal")
+        .command("build")
         .option(
             "-c, --config <fileName>",
             "config file name",
