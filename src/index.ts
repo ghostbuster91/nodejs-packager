@@ -8,7 +8,7 @@ import { AppConfig, createConfig } from "./config";
 import { stage } from "./commands/stage";
 import { buildDockerImage, followProgress } from "./commands/buildImage";
 import { Logger } from "./logger";
-import Inquirer from "inquirer";
+import { acquireCredentials } from "./credentials-handler";
 
 async function readConfig(
     cwd: string,
@@ -26,7 +26,7 @@ async function main() {
     console.log(`Current working directory: ${cwd}`);
     const program = commander.program;
 
-    program.version("0.2.0");
+    program.version("0.2.0", "-v, --version");
 
     program
         .command("stage")
@@ -79,6 +79,10 @@ async function main() {
             "dockerconfig.ts"
         )
         .option("-l, --log-level <log_level>", "log level", "INFO")
+        .option(
+            "--auth",
+            "Will ask for user credentials rather than using daemon wide credentials"
+        )
         .description(
             "Builds an image using the local Docker server and pubishes it to the remote repository"
         )
@@ -89,33 +93,19 @@ async function main() {
                 cmdObj.config,
                 logger
             );
+            const shouldAuthenticate: boolean = cmdObj.auth;
+            const credentials = await acquireCredentials(
+                logger,
+                shouldAuthenticate
+            );
             const dockerfile = await stage(cwd, config, logger);
             await buildDockerImage(config, docker, dockerfile, logger);
 
-            const questions = [
-                {
-                    type: "input",
-                    name: "username",
-                    message: "Username",
-                },
-                {
-                    type: "password",
-                    name: "password",
-                    message: "Password",
-                },
-            ];
-            const response = await Inquirer.prompt(questions);
-
             for (const alias of config.imageConfig.aliases) {
                 const image = docker.getImage(dockerAliasToString(alias));
-                logger.log(
-                    `Pushing ${dockerAliasToString(alias)}`
-                );
+                logger.log(`Pushing ${dockerAliasToString(alias)}`);
                 const stream = await image.push({
-                    authconfig: {
-                        username: response.username,
-                        password: response.password,
-                    },
+                    authconfig: credentials,
                 });
                 await followProgress(docker, stream, logger);
             }
@@ -157,7 +147,6 @@ async function main() {
             }
             logger.log("Done");
         });
-
     await program.parseAsync(process.argv);
 }
 
