@@ -12,6 +12,9 @@ import { acquireCredentials } from "./credentials-handler";
 import fs from "fs";
 import path from "path";
 
+export * from './userConfig'
+
+
 async function readConfig(
     cwd: string,
     configFile: string,
