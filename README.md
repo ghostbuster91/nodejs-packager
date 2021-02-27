@@ -93,4 +93,16 @@ Templates define how layers within the docker image are built. Currently there a
 
 ### Authorization
 
-Nodejs-packager will try to use daemon-wide credentials whenever possible. If this isn't an option for you, or it is insufficient you can provide additional credentials using `--auth` option.
+nodejs-packager will try to use daemon-wide credentials whenever possible. If this isn't an option for you, or it is insufficient you can provide additional credentials using `--auth` option.
+
+## Releasing
+
+Currently done manually through `np` (`npm install --global np`).
+
+## Contributing
+
+nodejs-packager is an early stage project. Everything might change. All suggestions welcome :)
+
+See the list of [issues](https://github.com/ghostbuster91/nodejs-packager/issues) and pick one! Or report your own.
+
+If you are having doubts on the why or how something works, don't hesitate to ask a question on gitter or via github. This probably means that the documentation or the code is unclear and should be improved for the benefit of all.
