@@ -2,7 +2,7 @@
 
 const userConfig = {
     imageConfig: {
-        baseImage: "node:15-alpine",
+        baseImage: "kghost0/node-test-img:13",
         entrypoint: ["node", "index.js"],
         aliases: [{name: "kghost0/node-test-img", tag: "13"}],
         template: 'NPM_JS',

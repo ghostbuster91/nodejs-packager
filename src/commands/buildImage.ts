@@ -3,21 +3,28 @@ import path from "path";
 import { dockerAliasToString } from "../dockerAlias";
 import { AppConfig } from "../config";
 import { Logger } from "../logger";
+import { Credentials } from "../credentials-handler";
 
 export async function buildDockerImage(
     config: AppConfig,
     docker: Dockerode,
     dockerfile: string,
-    logger: Logger
+    logger: Logger,
+    credentials: Credentials
 ): Promise<any> {
     logger.log("Building docker image...");
     const aliases = config.imageConfig.aliases.map(dockerAliasToString);
+    var registryCredentials: any = {};
+    registryCredentials[credentials.registry] = {
+        username: credentials.username,
+        password: credentials.password,
+    };
     const stream = await docker.buildImage(
         {
             context: path.dirname(dockerfile),
             src: ["."],
         },
-        { t: aliases }
+        { t: aliases, registryconfig: registryCredentials }
     );
     followProgress(docker, stream, logger);
 }
@@ -83,7 +90,7 @@ export async function followProgress(
                     }
                 } else if (isErrorMessage(msg)) {
                     logger.error(msg.error);
-                    logger.debug(JSON.stringify(msg.errorDetail.message))
+                    logger.debug(JSON.stringify(msg.errorDetail.message));
                 } else if (isAuxMessage(msg)) {
                     logger.debug(JSON.stringify(msg.aux));
                 } else if (isStatusMessage(msg)) {

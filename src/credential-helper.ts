@@ -4,7 +4,7 @@ import os from "os";
 import path from "path";
 import { Logger } from "./logger";
 
-interface Credentials {
+export interface Credentials {
     Username: string;
     Secret: string;
     ServerURL: string;
@@ -12,8 +12,14 @@ interface Credentials {
 
 interface DockerConfig {
     auths: any;
-    credsStore: string;
+    credsStore?: string;
 }
+interface ServerAuthDetails {
+    auth: string;
+}
+
+const decode = (str: string): string =>
+    Buffer.from(str, "base64").toString("binary");
 
 export async function getCredentials(logger: Logger): Promise<Credentials> {
     const homedir = os.homedir();
@@ -24,13 +30,29 @@ export async function getCredentials(logger: Logger): Promise<Credentials> {
     const dockerConfig = JSON.parse(
         configJsonString.toString()
     ) as DockerConfig;
-    logger.trace(`DockerConfig: ${configJsonString}`)
-    const authServer: string = Object.keys(dockerConfig.auths)[0]
-    const programmName = credsStoreToProgrammName(dockerConfig.credsStore);
-    logger.debug(`Selected ${programmName} credential helper`)
-    const credentials =  await executeCredentialHelper(programmName, authServer);
-    logger.debug(`Found credentials for: ${credentials.ServerURL} with user: ${credentials.Username}`)
-    return credentials
+    logger.trace(`DockerConfig: ${configJsonString}`);
+    if (dockerConfig.credsStore) {
+        const authServer: string = Object.keys(dockerConfig.auths)[0];
+        const programmName = credsStoreToProgrammName(dockerConfig.credsStore);
+        logger.debug(`Selected ${programmName} credential helper`);
+        const credentials = await executeCredentialHelper(
+            programmName,
+            authServer
+        );
+        logger.debug(
+            `Found credentials for: ${credentials.ServerURL} with user: ${credentials.Username}`
+        );
+        return credentials;
+    } else {
+        logger.debug(`credStore not configured. Fallback to plainText method.`);
+        const [authServer, serverAuthDetails] = Object.entries(
+            dockerConfig.auths
+        )[0];
+        const [user, password] = decode(
+            (serverAuthDetails as ServerAuthDetails).auth
+        ).split(":");
+        return { Username: user, Secret: password, ServerURL: authServer };
+    }
 }
 
 function credsStoreToProgrammName(credsStore: string): string {

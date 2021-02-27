@@ -12,8 +12,7 @@ import { acquireCredentials } from "./credentials-handler";
 import fs from "fs";
 import path from "path";
 
-export * from './userConfig'
-
+export * from "./userConfig";
 
 async function readConfig(
     cwd: string,
@@ -58,7 +57,11 @@ async function main() {
     program
         .command("build")
         .description("Builds an image using the local Docker server.")
-        .action(async () => {
+        .option(
+            "--auth",
+            "Will ask for user credentials rather than using daemon wide credentials"
+        )
+        .action(async (cmdObj) => {
             const docker = new Dockerode({
                 socketPath: "/var/run/docker.sock",
             });
@@ -70,19 +73,30 @@ async function main() {
                 program.opts().config,
                 logger
             );
+            const shouldAuthenticate: boolean = cmdObj.auth;
+            const credentials = await acquireCredentials(
+                logger,
+                shouldAuthenticate
+            );
             const dockerfile = await stage(cwd, config, logger);
-            await buildDockerImage(config, docker, dockerfile, logger);
+            await buildDockerImage(
+                config,
+                docker,
+                dockerfile,
+                logger,
+                credentials
+            );
             logger.log("Done");
         });
 
     program
         .command("publish")
+        .description(
+            "Builds an image using the local Docker server and pubishes it to the remote repository"
+        )
         .option(
             "--auth",
             "Will ask for user credentials rather than using daemon wide credentials"
-        )
-        .description(
-            "Builds an image using the local Docker server and pubishes it to the remote repository"
         )
         .action(async (cmdObj) => {
             const docker = new Dockerode({
@@ -101,7 +115,13 @@ async function main() {
                 shouldAuthenticate
             );
             const dockerfile = await stage(cwd, config, logger);
-            await buildDockerImage(config, docker, dockerfile, logger);
+            await buildDockerImage(
+                config,
+                docker,
+                dockerfile,
+                logger,
+                credentials
+            );
 
             for (const alias of config.imageConfig.aliases) {
                 const image = docker.getImage(dockerAliasToString(alias));
@@ -117,7 +137,7 @@ async function main() {
     program
         .command("clean")
         .description(
-            "Deletes all the temporary files and removes the built image from the local Docker server."
+            "Deletes all the temporary files and removes built images from the local Docker server."
         )
         .action(async () => {
             const docker = new Dockerode({
