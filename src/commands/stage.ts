@@ -10,7 +10,7 @@ export async function stage(cwd: string, appConfig: AppConfig, logger: Logger) {
     const targetPath = path.join(cwd, appConfig.dockerDir);
     const dockerImage = createDockerFile(appConfig);
 
-    await fs.promises.rm(targetPath, { recursive: true });
+    await fs.promises.rm(targetPath, { recursive: true, force: true });
     await fs.promises.mkdir(targetPath, { recursive: true });
     await fs.promises.writeFile(
         `${targetPath}/${appConfig.dockerFile}`,
