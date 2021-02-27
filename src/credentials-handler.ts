@@ -40,7 +40,7 @@ export async function acquireCredentials(
         };
     } else {
         const creds = await getCredentials(logger);
-        logger.log("Using deamon-wide credentials");
+        logger.log("Using daemon-wide credentials");
         return {
             username: creds.Username,
             password: creds.Secret,

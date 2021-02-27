@@ -1,22 +1,25 @@
 # nodejs-packager
 
 This project draws inspiration from various projects from jvm ecosystem:
-- [sbt-native-packager](https://github.com/sbt/sbt-native-packager)
-- [jib](https://github.com/GoogleContainerTools/jib)
 
+-   [sbt-native-packager](https://github.com/sbt/sbt-native-packager)
+-   [jib](https://github.com/GoogleContainerTools/jib)
 
 ## Goals of the project
+
 nodejs-packager primary goals is creating a Docker image which can “just run” your nodejs application. At the same time it tries to:
-- follow best practices when packaging your application
-- be concise
-- be easy to use
-- cover most popular use-cases
+
+-   follow best practices when packaging your application
+-   be concise
+-   be easy to use
+-   cover the most popular use-cases
 
 Covering 100% of the use-cases is not a goal of that project. If you have a very specific setup consider getting back to plain `Dockerfile`.
-Having said that, most popular use-cases should be covered. If your use-case is not covered please file an issue and we can think what to do with it together.
+Having said that, most common use-cases should be covered. If your use-case is not covered please file an issue and we can think what to do with it together.
 
-## Usage 
-*Keep in mind that this project is still in experimental phase. Use it at your own risk!*
+## Usage
+
+_Keep in mind that this project is still in experimental phase. Use it at your own risk!_
 
 Install packager globally:
 `npm install -g @ghostbuster91/nodejs-packager`
@@ -25,6 +28,7 @@ or add to your project:
 `npm install --save-dev @ghostbuster91/nodejs-packager`
 
 and add corresponding entries for each relevant command to the `scripts` section of your `package.json` e.g.:
+
 ```
 "scripts": {
   "docker-clean": "nodejs-packager clean",
@@ -51,4 +55,42 @@ Commands:
   clean                        Deletes all the temporary files and removes built images from the local Docker server.
   init <template>              Generates initial dockerconfig.ts for given template
   help [command]               display help for command
-  ```
+```
+
+## Configuration
+
+The minimal configuration looks as follows:
+
+```
+module.exports.userConfig = async () => {
+      return {
+          imageConfig: {
+              baseImage: "node:15-alpine",
+              entrypoint: ["node", "index.js"],
+              aliases: [],
+          }
+      }
+}
+```
+
+Currently supported additional options for building images:
+
+-   `workdir?: string;`
+-   `exposedPorts?: number[];`
+-   `exposedUdpPorts?: number[];`
+-   `command?: string[];`
+-   `aliases: {name: string; tag: string;}[];`
+-   `dockerUpdateLatest?: boolean;`
+-   `template?: string;`
+-   `maintainer?: string;`
+-   `mappings?: { from: string; to: string;}[];`
+-   `envVars?: { key: string; value: string;}[];`
+-   `volumes?: string[];`
+
+### Templates
+
+Templates define how layers within the docker image are built. Currently there are only two of them: `NPM_JS` and `NPM_TS`. If neither of these is specified, default one is used (`NPM_JS`).
+
+### Authorization
+
+Nodejs-packager will try to use daemon-wide credentials whenever possible. If this isn't an option for you, or it is insufficient you can provide additional credentials using `--auth` option.

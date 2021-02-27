@@ -7,7 +7,7 @@ module.exports.userConfig=  async () => {
         console.log(`Using latest commit: ${lastCommitSha}`)
         return {
             imageConfig: {
-                baseImage: "kghost0/node-test-img:13",
+                baseImage: "node:15-alpine",
                 entrypoint: ["node", "index.js"],
                 aliases: [{name: "kghost0/node-test-img", tag: lastCommitSha}],
                 template: 'NPM_JS',

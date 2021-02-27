@@ -64,7 +64,7 @@ export const createConfig = (userConfig: uc.AppConfig): AppConfig => {
             exposedPorts: userConfig.imageConfig.exposedPorts ?? [],
             exposedUpdPorts: userConfig.imageConfig.exposedUdpPorts ?? [],
             aliases:
-                userConfig.imageConfig.dockerUpdateLatest === "true"
+                userConfig.imageConfig.dockerUpdateLatest === true
                     ? userConfig.imageConfig.aliases.concat(
                           userConfig.imageConfig.aliases
                               .filter(
