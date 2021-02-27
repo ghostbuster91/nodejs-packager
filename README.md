@@ -27,7 +27,10 @@ or add to your project:
 and add corresponding entries for each relevant command to the `scripts` section of your `package.json` e.g.:
 ```
 "scripts": {
-  "docker-build": "nodejs-packager build"
+  "docker-clean": "nodejs-packager clean",
+  "docker-stage": "nodejs-packager stage",
+  "docker-build": "nodejs-packager build",
+  "docker-publish": "nodejs-packager publish"
 }
 ```
 
@@ -43,9 +46,9 @@ Options:
 Commands:
   stage                        Generates a directory with the Dockerfile and environment prepared for building a Docker
                                image.
-  build                        Builds an image using the local Docker server.
+  build [options]              Builds an image using the local Docker server.
   publish [options]            Builds an image using the local Docker server and pubishes it to the remote repository
-  clean                        Deletes all the temporary files and removes the built image from the local Docker server.
+  clean                        Deletes all the temporary files and removes built images from the local Docker server.
   init <template>              Generates initial dockerconfig.ts for given template
   help [command]               display help for command
   ```
