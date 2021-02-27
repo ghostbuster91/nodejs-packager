@@ -7,10 +7,12 @@
     "express": "^4.17.1"
   },
   "devDependencies": {
-    "@ghostbuster91/nodejs-packager": "^0.3.0",
+    "@ghostbuster91/nodejs-packager": "^0.4.0",
     "simple-git": "^2.35.2"
   },
   "scripts": {
-    "docker-stage": "nodejs-packager stage"
-  }
+    "docker-clean": "nodejs-packager clean",
+    "docker-stage": "nodejs-packager stage",
+    "docker-build": "nodejs-packager build",
+    "docker-publish": "nodejs-packager publish"  }
 }
