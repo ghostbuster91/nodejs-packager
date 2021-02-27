@@ -26,7 +26,7 @@ export async function buildDockerImage(
         },
         { t: aliases, registryconfig: registryCredentials }
     );
-    followProgress(docker, stream, logger);
+    return followProgress(docker, stream, logger);
 }
 
 interface Message {}
