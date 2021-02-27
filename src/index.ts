@@ -19,7 +19,10 @@ async function readConfig(
     configFile: string,
     logger: Logger
 ): Promise<AppConfig> {
-    const userConfig: uc.AppConfig = await import(`${cwd}/${configFile}`);
+    const asyncConfig: {
+        userConfig: () => Promise<uc.AppConfig>;
+    } = await import(`${cwd}/${configFile}`);
+    const userConfig = await asyncConfig.userConfig();
     logger.log(`UserConfig loaded\n`);
     return createConfig(userConfig);
 }
